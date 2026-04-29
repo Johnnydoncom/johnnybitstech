@@ -80,7 +80,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col w-full">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -112,7 +112,7 @@ export default function RootLayout({
           }}
         />
         <Providers>
-          <Suspense fallback={<div className="flex-1 bg-background" />}>
+          <Suspense fallback={<div className="flex-1 bg-background w-full" />}>
             {children}
           </Suspense>
         </Providers>

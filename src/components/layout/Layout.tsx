@@ -10,11 +10,11 @@ export const Layout = ({ children }: { children: ReactNode }) => {
   useReveal();
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen w-full">
       <Navbar />
       <main className="flex-1 pt-16 md:pt-20">{children}</main>
       <Footer />
-      <FloatingActions />
+      {/* <FloatingActions /> */}
     </div>
   );
 };

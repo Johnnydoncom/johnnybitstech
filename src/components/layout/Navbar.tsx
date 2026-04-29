@@ -31,13 +31,13 @@ export const Navbar = () => {
           : "bg-transparent"
       )}
     >
-      <div className="container-tight flex h-16 md:h-20 items-center justify-between">
+      <div className="container-tight flex h-16 md:h-24 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group" aria-label={BRAND.name}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/assets/johnnybits-logo.png"
             alt={`${BRAND.name} logo`}
-            className="h-10 md:h-16 w-auto transition-all group-hover:scale-105"
+            className="h-12 md:h-16 w-auto transition-all group-hover:scale-105"
           />
         </Link>
 

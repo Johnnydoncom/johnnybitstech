@@ -38,7 +38,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="py-24">
+      <section className="py-24 overflow-hidden">
         <div className="container-tight grid gap-14 lg:grid-cols-2 items-center">
           <div>
             <h2 className="reveal font-display text-3xl md:text-4xl font-bold tracking-tight">Our story</h2>
@@ -51,7 +51,7 @@ export default function AboutPage() {
               </p>
             </div>
           </div>
-          <div className="reveal relative" data-delay="120">
+          <div className="reveal relative " data-delay="120">
             <div className="absolute -inset-8 bg-gradient-brand opacity-20 blur-3xl rounded-full" />
             <div className="relative grid grid-cols-2 gap-4">
               {[
