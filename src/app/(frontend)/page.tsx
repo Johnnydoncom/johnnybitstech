@@ -112,7 +112,7 @@ const Index = () => {
       </section>
 
       {/* WHY US */}
-      <section className="bg-muted/40 py-24">
+      <section className="bg-muted/40 py-24 overflow-hidden">
         <div className="container-tight grid gap-12 lg:grid-cols-2 items-center">
           <div>
             <p className="reveal text-sm font-semibold uppercase tracking-wider text-primary">Why Johnnybits</p>
