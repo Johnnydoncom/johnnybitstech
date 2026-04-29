@@ -11,7 +11,7 @@ const ICONS = { Layout, Code2, TrendingUp, ShoppingBag, Smartphone, PenTool, Shi
 const Index = () => {
   return (
     <>
-      
+
 
       {/* HERO — dark surface */}
       <section className="surface-dark relative overflow-hidden -mt-16 md:-mt-20 pt-28 md:pt-36 pb-24 md:pb-36">
