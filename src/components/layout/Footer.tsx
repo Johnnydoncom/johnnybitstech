@@ -5,8 +5,8 @@ import { BRAND, NAV_LINKS, SERVICES } from "@/lib/brand";
 export const Footer = () => {
   return (
     <footer className="surface-dark mt-24">
-      <div className="container-tight py-16 grid gap-12 md:grid-cols-2 lg:grid-cols-4">
-        <div>
+      <div className="container-tight py-16 grid gap-12 grid-cols-2 lg:grid-cols-4">
+        <div className="col-span-2 lg:col-span-1">
           <Link href="/" className="inline-flex items-center gap-2 mb-5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/assets/johnnybits-logo.png" alt={BRAND.name} className="h-10 w-auto brightness-110" />
@@ -49,7 +49,7 @@ export const Footer = () => {
           </ul>
         </div>
 
-        <div>
+        <div className="col-span-2 lg:col-span-1">
           <h4 className="font-display font-semibold mb-4 text-surface-dark-foreground">Contact</h4>
           <ul className="space-y-3 text-sm text-surface-dark-foreground/80">
             <li className="flex items-start gap-3">
