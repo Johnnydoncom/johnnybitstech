@@ -6,6 +6,7 @@ interface SEOProps {
   description: string;
   image?: string;
   noIndex?: boolean;
+  absoluteTitle?: boolean;
 }
 
 export function constructMetadata({
@@ -13,9 +14,10 @@ export function constructMetadata({
   description,
   image = "/og-image.png",
   noIndex = false,
+  absoluteTitle = false
 }: SEOProps): Metadata {
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
     openGraph: {
       title,

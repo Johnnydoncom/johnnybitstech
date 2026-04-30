@@ -66,6 +66,25 @@ export const metadata: Metadata = {
   alternates: {
     canonical: SITE_URL,
   },
+  keywords: [
+    "Johnnybits Technology",
+    "web design Nigeria",
+    "digital agency Lagos",
+    "web development",
+    "SEO services",
+    "digital marketing",
+    "Web Designers in Ibadan",
+    "Web Design Ibadan",
+    "Affordable Web Design Nigeria",
+    "Web Development Nigeria",
+    "SEO Company in Ibadan",
+    "Digital Marketing Agency in Nigeria",
+    "Professional Website Design Nigeria",
+    "E-Commerce Development Nigeria",
+    "Online Store Nigeria",
+    "Best Web Designers Nigeria",
+    "Grow Your Business Online"
+  ]
 };
 
 

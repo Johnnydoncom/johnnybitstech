@@ -197,18 +197,19 @@ export const SERVICES: ServiceItem[] = [
 ];
 
 export const PORTFOLIO = [
-  { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/" },
-  { name: "Gaidi", tags: ["Web Development"], url: "https://gaidi.de/" },
-  { name: "Gate To Africa", tags: ["SEO", "Web Development"], url: "https://gate-to-africa.de/" },
-  { name: "SmartGold Affiliate", tags: ["Web Development"], url: "https://smartgold.ng/" },
-  { name: "SmartNetwork Platform", tags: ["SEO", "Web Development"], url: "https://smartnetwork.ng/" },
-  { name: "Bara.co Fashion Store", tags: ["E-commerce"], url: "https://bara.co.com/" },
-  { name: "Rukayon School System", tags: ["Web App"], url: "https://rukayon.com/" },
-  { name: "Chester Legal Service", tags: ["Web Development"], url: "https://clsattorneys.legal/" },
-  { name: "Floors Nigeria", tags: ["SEO", "Web Development"], url: "https://floornigeria.com/" },
-  { name: "Deartsy Interiors", tags: ["SEO", "Web Development"], url: "https://deartsyinteriors.com/" },
-  { name: "Zynoplus", tags: ["Laravel", "VueJS"], url: "https://www.zynoplus.com/" },
-  { name: "Largelife Furniture", tags: ["E-commerce", "SEO"], url: "https://largelifedesigns.com/" },
+  { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/", image: "" },
+  { name: "Gaidi", tags: ["Web Development"], url: "https://gaidi.de/", image: "/assets/portfolio/German-African Initiative for Development and Integration – (GAIDI) UG. WordPress Web Design.webp" },
+  { name: "Gate To Africa", tags: ["SEO", "Web Development"], url: "https://gate-to-africa.de/", image: "/assets/portfolio/Gate to Africa - Entdecken Sie die Vielfalt Afrikas mit Gate to Africa - Web Design & SEO.webp" },
+  { name: "SmartGold Affiliate", tags: ["Web Development"], url: "https://smartgold.ng/", image: "" },
+  { name: "SmartNetwork Platform", tags: ["SEO", "Web Development"], url: "https://smartnetwork.ng/", image: "" },
+  { name: "Greentide Home", tags: ["Web Design"], url: "#", image: "/assets/portfolio/Greentide Home.webp" },
+  { name: "Bara.co Fashion Store", tags: ["E-commerce"], url: "https://bara.co.com/", image: "" },
+  { name: "Rukayon School System", tags: ["Web App"], url: "https://rukayon.com/", image: "" },
+  { name: "Chester Legal Service", tags: ["Web Development"], url: "https://clsattorneys.legal/", image: "" },
+  { name: "Floors Nigeria", tags: ["SEO", "Web Development"], url: "https://floornigeria.com/", image: "" },
+  { name: "Deartsy Interiors", tags: ["SEO", "Web Development"], url: "https://deartsyinteriors.com/", image: "" },
+  { name: "Zynoplus", tags: ["Laravel", "VueJS"], url: "https://www.zynoplus.com/", image: "" },
+  { name: "Largelife Furniture", tags: ["E-commerce", "SEO"], url: "https://largelifedesigns.com/", image: "" },
 ];
 
 export const CLIENTS = [

@@ -5,11 +5,11 @@ let pool: mysql.Pool | null = null;
 export function getPool() {
   if (!pool) {
     pool = mysql.createPool({
-      host: process.env.DB_HOST || "localhost",
+      host: process.env.DB_HOST || "sdb-57.hosting.stackcp.net",
       port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASSWORD || "",
-      database: process.env.DB_NAME || "johnnybits",
+      user: process.env.DB_USER || "johnnybitsnext-35303135d7aa",
+      password: process.env.DB_PASSWORD || "$~gI£!C?r8nd",
+      database: process.env.DB_NAME || "johnnybitsnext-35303135d7aa",
       waitForConnections: true,
       connectionLimit: 5, // keep low for serverless
       queueLimit: 0,

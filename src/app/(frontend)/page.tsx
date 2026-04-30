@@ -1,10 +1,18 @@
-"use client";
+// "use client";
 import Link from "next/link";
 
 import { ArrowRight, Sparkles, Zap, Globe2, Award, Users2, Rocket, CheckCircle2, Layout, Code2, TrendingUp, ShoppingBag, Smartphone, PenTool, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { BRAND, SERVICES, PORTFOLIO, CLIENTS } from "@/lib/brand";
+
+import { constructMetadata } from "@/lib/seo";
+
+export const metadata = constructMetadata({
+  title: "Web Designers in Ibadan | Digital Marketing | Johnnybits",
+  description: "Web Designers in Ibadan - We are Nigeria&#039;s leading web design company. We help grow your business with Web Design, Digital Marketing and E-Commerce services.",
+  absoluteTitle: true
+});
 
 const ICONS = { Layout, Code2, TrendingUp, ShoppingBag, Smartphone, PenTool, ShieldCheck };
 
@@ -21,37 +29,69 @@ const Index = () => {
         <div className="absolute -bottom-20 -right-10 h-[28rem] w-[28rem] rounded-full bg-primary-glow/20 blur-3xl animate-blob" style={{ animationDelay: "4s" }} />
 
         <div className="container-tight relative z-10">
-          <div className="max-w-3xl">
-            <div className="reveal inline-flex items-center gap-2 rounded-full border border-primary-glow/30 bg-primary-glow/10 px-4 py-1.5 text-xs font-medium text-primary-glow backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5" />
-              Creative Agency · Ibadan, Nigeria
-            </div>
-            <h1 className="reveal mt-6 font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight" data-delay="80">
-              We design <span className="text-gradient">brands & websites</span> that win on Google.
-            </h1>
-            <p className="reveal mt-6 text-lg md:text-xl text-surface-dark-foreground/75 leading-relaxed max-w-2xl" data-delay="160">
-              Johnnybits is a result-focused web design, development & digital marketing agency in Ibadan. We help startups and growing businesses across Nigeria turn ideas into beautiful, high-converting digital experiences.
-            </p>
-            <div className="reveal mt-9 flex flex-wrap gap-3" data-delay="240">
-              <Button asChild variant="hero" size="xl">
-                <Link href="/contact">Get a free quote <ArrowRight className="ml-1 h-5 w-5" /></Link>
-              </Button>
-              <Button asChild variant="outlineGlow" size="xl">
-                <Link href="/portfolio">View our work</Link>
-              </Button>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="max-w-3xl">
+              <div className="reveal inline-flex items-center gap-2 rounded-full border border-primary-glow/30 bg-primary-glow/10 px-4 py-1.5 text-xs font-medium text-primary-glow backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+                Creative Agency · Ibadan, Nigeria
+              </div>
+              <h1 className="reveal mt-6 font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight" data-delay="80">
+                We design <span className="text-gradient">brands & websites</span> that win on Google.
+              </h1>
+              <p className="reveal mt-6 text-lg md:text-xl text-surface-dark-foreground/75 leading-relaxed max-w-2xl" data-delay="160">
+                Johnnybits is a result-focused web design, development & digital marketing agency in Ibadan. We help startups and growing businesses across Nigeria turn ideas into beautiful, high-converting digital experiences.
+              </p>
+              <div className="reveal mt-9 flex flex-wrap gap-3" data-delay="240">
+                <Button asChild variant="hero" size="xl">
+                  <Link href="/contact">Get a free quote <ArrowRight className="ml-1 h-5 w-5" /></Link>
+                </Button>
+                <Button asChild variant="outlineGlow" size="xl">
+                  <Link href="/portfolio">View our work</Link>
+                </Button>
+              </div>
+
+              {/* <div className="reveal mt-12 grid grid-cols-3 gap-6 max-w-lg" data-delay="320">
+                {[
+                  { k: "5+", v: "Years" },
+                  { k: "80+", v: "Projects" },
+                  { k: "5.0★", v: "Google" },
+                ].map((s) => (
+                  <div key={s.v}>
+                    <div className="text-3xl md:text-4xl font-display font-bold text-primary-glow">{s.k}</div>
+                    <div className="text-xs uppercase tracking-wider text-surface-dark-foreground/60 mt-1">{s.v}</div>
+                  </div>
+                ))}
+              </div> */}
             </div>
 
-            <div className="reveal mt-12 grid grid-cols-3 gap-6 max-w-lg" data-delay="320">
-              {[
-                { k: "5+", v: "Years" },
-                { k: "80+", v: "Projects" },
-                { k: "5.0★", v: "Google" },
-              ].map((s) => (
-                <div key={s.v}>
-                  <div className="text-3xl md:text-4xl font-display font-bold text-primary-glow">{s.k}</div>
-                  <div className="text-xs uppercase tracking-wider text-surface-dark-foreground/60 mt-1">{s.v}</div>
+            <div className="reveal hidden lg:block relative w-full flex items-center justify-center" data-delay="400">
+              {/* Soft ambient blur behind the image */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5 bg-primary/20 blur-[100px] rounded-full pointer-events-none" />
+
+              {/* Main glass container */}
+              <div className="relative w-full mmax-w-lg mx-auto lg:ml-auto rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-3 shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.05] to-transparent rounded-3xl pointer-events-none" />
+
+                {/* Image container with gradient mask */}
+                <div className="relative rounded-2xl overflow-hidden bg-black/60 border border-white/[0.05] shadow-inner">
+                  {/* Decorative browser/editor dots */}
+                  <div className="absolute top-0 left-0 right-0 h-10 bg-white/[0.02] backdrop-blur-md border-b border-white/[0.05] flex items-center px-4 gap-2 z-10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                  </div>
+
+                  <img
+                    src="/assets/hero_code_ui.png"
+                    alt="Modern Enterprise Software Development"
+                    className="w-full h-auto object-cover pt-10"
+                    style={{
+                      WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
+                      maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)"
+                    }}
+                  />
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </div>
@@ -178,7 +218,7 @@ const Index = () => {
 
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {PORTFOLIO.slice(0, 6).map((p, i) => {
-              const screenshot = `https://image.thum.io/get/width/800/crop/600/noanimate/${p.url}`;
+              const screenshot = p.image || `https://image.thum.io/get/width/800/crop/600/noanimate/${p.url}`;
               return (
                 <a
                   key={p.name}
@@ -193,7 +233,6 @@ const Index = () => {
                     alt={`${p.name} website screenshot — project by Johnnybits`}
                     loading="lazy"
                     className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,hsl(var(--primary-glow)/0.4),transparent_60%)]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface-dark/85 via-surface-dark/40 to-surface-dark/10 group-hover:from-surface-dark/70 transition-smooth" />
