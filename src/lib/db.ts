@@ -1,36 +1,37 @@
-import mysql, { type FieldPacket, type QueryResult } from "mysql2/promise";
+import { neon } from "@neondatabase/serverless";
 
-let pool: mysql.Pool | null = null;
+const sql = neon(process.env.DATABASE_URL!);
 
-export function getPool() {
-  if (!pool) {
-    pool = mysql.createPool({
-      host: process.env.DB_HOST || "sdb-57.hosting.stackcp.net",
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER || "johnnybitsnext-35303135d7aa",
-      password: process.env.DB_PASSWORD || "$~gI£!C?r8nd",
-      database: process.env.DB_NAME || "johnnybitsnext-35303135d7aa",
-      waitForConnections: true,
-      connectionLimit: 5, // keep low for serverless
-      queueLimit: 0,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 0,
-    });
-  }
-  return pool;
+/**
+ * Convert MySQL-style `?` placeholders to PostgreSQL `$1, $2, ...` placeholders.
+ */
+function convertPlaceholders(queryStr: string): string {
+  let index = 0;
+  return queryStr.replace(/\?/g, () => `$${++index}`);
 }
 
 export async function query<T = Record<string, unknown>>(
-  sql: string,
+  sqlStr: string,
   params?: (string | number | null | boolean)[]
 ): Promise<T[]> {
-  const db = getPool();
-  const [rows] = await db.execute(sql, params) as [T[], FieldPacket[]];
-  return rows;
+  const pgSql = convertPlaceholders(sqlStr);
+  // sql.query() returns rows directly as Record<string, any>[]
+  const rows = await sql.query(pgSql, params as unknown[]);
+  return rows as T[];
 }
 
-export async function execute(sql: string, params?: (string | number | null | boolean)[]) {
-  const db = getPool();
-  const [result] = await db.execute(sql, params) as [mysql.ResultSetHeader, FieldPacket[]];
-  return result;
+export async function execute(
+  sqlStr: string,
+  params?: (string | number | null | boolean)[]
+) {
+  const pgSql = convertPlaceholders(sqlStr);
+  // sql.query() returns rows directly as Record<string, any>[]
+  const rows = await sql.query(pgSql, params as unknown[]);
+
+  // Provide a MySQL-compatible shape with insertId for INSERT ... RETURNING id
+  return {
+    insertId: rows.length > 0 && "id" in rows[0] ? (rows[0] as { id: number }).id : 0,
+    affectedRows: rows.length,
+    rows,
+  };
 }

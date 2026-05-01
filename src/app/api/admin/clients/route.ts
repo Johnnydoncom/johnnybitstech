@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
     const result = await execute(
-      "INSERT INTO clients (name, logo_url, website, display_order) VALUES (?, ?, ?, ?)",
+      "INSERT INTO clients (name, logo_url, website, display_order) VALUES (?, ?, ?, ?) RETURNING id",
       [name, logo_url || null, website || null, display_order || 0]
     );
 

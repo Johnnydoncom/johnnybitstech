@@ -31,14 +31,14 @@ export async function POST(request: Request) {
 
     const result = await execute(
       `INSERT INTO blog_posts (title, slug, excerpt, content, tag, published, meta_title, meta_description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, meta_title || null, meta_description || null]
     );
 
     return NextResponse.json({ id: result.insertId, message: "Post created" }, { status: 201 });
   } catch (error: unknown) {
     const err = error as { code?: string };
-    if (err.code === "ER_DUP_ENTRY") {
+    if (err.code === "23505") {
       return NextResponse.json({ error: "A post with this slug already exists" }, { status: 409 });
     }
     console.error("Blog create error:", error);
