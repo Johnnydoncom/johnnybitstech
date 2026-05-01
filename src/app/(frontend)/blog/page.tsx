@@ -8,59 +8,22 @@ export const metadata = constructMetadata({
   description: "Practical articles from our designers, developers and marketers — tips, guides and ideas for growing online in Nigeria.",
 });
 
+import { query } from "@/lib/db";
+import Image from "next/image";
 
-const POSTS = [
-  {
-    slug: "seo-tips-nigerian-businesses-2025",
-    title: "10 SEO Tips Every Nigerian Business Should Use in 2025",
-    excerpt: "Get found on Google in Nigeria with these proven local SEO tactics — from Google Business Profile to schema markup.",
-    date: "Apr 2025",
-    read: "8 min",
-    tag: "SEO",
-  },
-  {
-    slug: "why-your-website-is-not-converting",
-    title: "Why Your Website Isn't Converting (and How to Fix It)",
-    excerpt: "Beautiful design isn't enough. Here are the 7 conversion killers we see most often on Nigerian business websites.",
-    date: "Mar 2025",
-    read: "6 min",
-    tag: "Conversion",
-  },
-  {
-    slug: "wordpress-vs-custom-website",
-    title: "WordPress vs Custom Website: Which Should Your Business Choose?",
-    excerpt: "We've built both — here's an honest breakdown of cost, speed, security and SEO for Nigerian businesses.",
-    date: "Mar 2025",
-    read: "10 min",
-    tag: "Web Design",
-  },
-  {
-    slug: "ecommerce-payments-nigeria",
-    title: "The Best Payment Gateways for Ecommerce in Nigeria",
-    excerpt: "Paystack, Flutterwave, Monnify and more — compared on fees, speed and developer experience.",
-    date: "Feb 2025",
-    read: "7 min",
-    tag: "E-commerce",
-  },
-  {
-    slug: "google-ads-vs-seo",
-    title: "Google Ads vs SEO: Where Should You Spend in Nigeria?",
-    excerpt: "Both have a place. Here's how to balance paid and organic for sustainable growth on a Nigerian budget.",
-    date: "Feb 2025",
-    read: "9 min",
-    tag: "Marketing",
-  },
-  {
-    slug: "website-speed-matters",
-    title: "Why Website Speed Matters More on Nigerian Networks",
-    excerpt: "A 1-second delay can cost you 7% of conversions. Practical tips to make your site lightning-fast on 3G/4G.",
-    date: "Jan 2025",
-    read: "5 min",
-    tag: "Performance",
-  },
-];
+interface BlogPost {
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  created_at: Date;
+  tag: string;
+  featured_image: string | null;
+}
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const posts = await query<BlogPost>("SELECT * FROM blog_posts WHERE published = true ORDER BY created_at DESC");
+
   return (
     <>
       <script
@@ -82,33 +45,63 @@ export default function BlogPage() {
         <div className="container-tight relative">
           <p className="reveal text-sm font-semibold uppercase tracking-[0.25em] text-primary-glow">Insights</p>
           <h1 className="reveal mt-4 font-display text-4xl md:text-6xl font-bold tracking-tight max-w-3xl" data-delay="80">
-            Tips, guides & ideas for <span className="text-gradient">growing online.</span>
+            Tech insights & strategies for <span className="text-gradient">growing your business.</span>
           </h1>
           <p className="reveal mt-6 text-lg text-surface-dark-foreground/75 max-w-2xl" data-delay="160">
-            Practical articles from our designers, developers and marketers — written for Nigerian businesses.
+            Explore our latest thoughts on AI, web development, and digital transformation in 2026.
           </p>
         </div>
       </section>
 
       <section className="py-20">
         <div className="container-tight grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {POSTS.map((p, i) => (
-            <article
-              key={p.slug}
-              className="reveal group rounded-2xl bg-card border border-border p-7 shadow-card hover:shadow-elevated hover:-translate-y-1 transition-smooth"
-              data-delay={`${(i % 3) * 80}`}
-            >
-              <span className="inline-block text-xs uppercase tracking-wider px-2.5 py-1 rounded-full bg-accent text-accent-foreground font-semibold">{p.tag}</span>
-              <h2 className="mt-4 font-display text-xl font-bold leading-snug group-hover:text-primary transition-smooth">
-                {p.title}
-              </h2>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{p.excerpt}</p>
-              <div className="mt-5 pt-5 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {p.date}</span>
-                <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {p.read}</span>
-              </div>
-            </article>
-          ))}
+          {posts.map((p, i) => {
+            const wordCount = (p.content || '').split(/\\s+/).length;
+            const readTime = Math.max(1, Math.ceil(wordCount / 200)) + " min";
+            const dateStr = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            
+            // Fallback image if null
+            const imageSrc = p.featured_image || "/assets/portfolio/Travels Insider.webp";
+
+            return (
+              <article
+                key={p.slug}
+                className="reveal group rounded-2xl bg-card border border-border/50 shadow-card hover:shadow-brand hover:-translate-y-1 transition-all duration-500 flex flex-col overflow-hidden"
+                data-delay={`${(i % 3) * 80}`}
+              >
+                <div className="relative aspect-[16/10] overflow-hidden bg-muted border-b border-border/50">
+                  <Image
+                    src={imageSrc}
+                    alt={p.title}
+                    width={600}
+                    height={400}
+                    className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5 z-10">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gradient-brand text-white shadow-md border border-white/20">
+                      {p.tag}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-6 flex flex-col flex-1">
+                  <h2 className="font-display text-xl font-bold leading-snug group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-primary-glow transition-all duration-300 line-clamp-3">
+                    <Link href={`/blog/${p.slug}`} className="before:absolute before:inset-0">
+                      {p.title}
+                    </Link>
+                  </h2>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-3">{p.excerpt}</p>
+                  <div className="mt-6 pt-5 border-t border-border/50 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                    <div className="flex items-center gap-4">
+                      <span className="inline-flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {dateStr}</span>
+                      <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {readTime}</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 

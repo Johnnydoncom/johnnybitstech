@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BRAND, SERVICES, PORTFOLIO, CLIENTS } from "@/lib/brand";
 
 import { constructMetadata } from "@/lib/seo";
+import Image from "next/image";
 
 export const metadata = constructMetadata({
   title: "Web Designers in Ibadan | Digital Marketing | Johnnybits",
@@ -81,10 +82,12 @@ const Index = () => {
                     <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
                   </div>
 
-                  <img
+                  <Image
                     src="/assets/hero_code_ui.png"
                     alt="Modern Enterprise Software Development"
                     className="w-full h-auto object-cover pt-10"
+                    width={600}
+                    height={800}
                     style={{
                       WebkitMaskImage: "linear-gradient(to bottom, black 60%, transparent 100%)",
                       maskImage: "linear-gradient(to bottom, black 60%, transparent 100%)"
@@ -229,11 +232,13 @@ const Index = () => {
                   data-delay={`${(i % 3) * 80}`}
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-muted border-b border-border/50">
-                    <img
+                    <Image
                       src={screenshot}
                       alt={`${p.name} website screenshot — project by Johnnybits`}
                       loading="lazy"
                       className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                      width={600}
+                      height={800}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5 z-10">

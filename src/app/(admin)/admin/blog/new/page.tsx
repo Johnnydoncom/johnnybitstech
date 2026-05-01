@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 export default function NewBlogPostPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [content, setContent] = useState("");
 
   const generateSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -27,9 +29,10 @@ export default function NewBlogPostPage() {
       title: fd.get("title") as string,
       slug: fd.get("slug") as string,
       excerpt: fd.get("excerpt") as string,
-      content: fd.get("content") as string,
+      content: content,
       tag: fd.get("tag") as string,
       published: fd.get("published") === "on",
+      featured_image: fd.get("featured_image") as string,
       meta_title: fd.get("meta_title") as string,
       meta_description: fd.get("meta_description") as string,
     };
@@ -55,7 +58,7 @@ export default function NewBlogPostPage() {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <Link href="/admin/blog" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to posts
       </Link>
@@ -91,8 +94,13 @@ export default function NewBlogPostPage() {
           </div>
 
           <div>
-            <Label htmlFor="content">Content (Markdown/HTML)</Label>
-            <Textarea id="content" name="content" rows={12} className="mt-1.5 font-mono text-sm" placeholder="Write your blog post content..." />
+            <Label htmlFor="featured_image">Featured Image URL</Label>
+            <Input id="featured_image" name="featured_image" className="mt-1.5" placeholder="/assets/blog/image.png" />
+          </div>
+
+          <div>
+            <Label className="mb-2 block">Content (Rich Text)</Label>
+            <RichTextEditor value={content} onChange={setContent} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -100,7 +108,7 @@ export default function NewBlogPostPage() {
               <Label htmlFor="tag">Tag / Category</Label>
               <Input id="tag" name="tag" className="mt-1.5" placeholder="e.g. SEO, Web Design" />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end pb-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="published" className="h-4 w-4 rounded border-border" />
                 <span className="text-sm font-medium">Publish immediately</span>
@@ -121,7 +129,7 @@ export default function NewBlogPostPage() {
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 pb-20">
           <Button variant="outline" asChild><Link href="/admin/blog">Cancel</Link></Button>
           <Button type="submit" disabled={saving}>
             <Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Create Post"}

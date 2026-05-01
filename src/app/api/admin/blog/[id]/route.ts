@@ -26,12 +26,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   try {
     const body = await req.json();
-    const { title, slug, excerpt, content, tag, published, meta_title, meta_description } = body;
+    const { title, slug, excerpt, content, tag, published, featured_image, meta_title, meta_description } = body;
 
     await execute(
-      `UPDATE blog_posts SET title=?, slug=?, excerpt=?, content=?, tag=?, published=?, meta_title=?, meta_description=?, updated_at=NOW()
+      `UPDATE blog_posts SET title=?, slug=?, excerpt=?, content=?, tag=?, published=?, featured_image=?, meta_title=?, meta_description=?, updated_at=NOW()
        WHERE id=?`,
-      [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, meta_title || null, meta_description || null, id]
+      [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, featured_image || null, meta_title || null, meta_description || null, id]
     );
 
     return NextResponse.json({ message: "Post updated" });

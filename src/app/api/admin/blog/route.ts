@@ -23,16 +23,16 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, slug, excerpt, content, tag, published, meta_title, meta_description } = body;
+    const { title, slug, excerpt, content, tag, published, featured_image, meta_title, meta_description } = body;
 
     if (!title || !slug) {
       return NextResponse.json({ error: "Title and slug are required" }, { status: 400 });
     }
 
     const result = await execute(
-      `INSERT INTO blog_posts (title, slug, excerpt, content, tag, published, meta_title, meta_description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-      [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, meta_title || null, meta_description || null]
+      `INSERT INTO blog_posts (title, slug, excerpt, content, tag, published, featured_image, meta_title, meta_description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+      [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, featured_image || null, meta_title || null, meta_description || null]
     );
 
     return NextResponse.json({ id: result.insertId, message: "Post created" }, { status: 201 });

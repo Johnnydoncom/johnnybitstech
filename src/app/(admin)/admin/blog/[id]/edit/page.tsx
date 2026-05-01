@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 export default function EditBlogPostPage() {
   const router = useRouter();
@@ -16,11 +17,16 @@ export default function EditBlogPostPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [post, setPost] = useState<Record<string, string | number | null>>({});
+  const [content, setContent] = useState("");
 
   useEffect(() => {
     fetch(`/api/admin/blog/${id}`)
       .then((r) => r.json())
-      .then((data) => { setPost(data); setLoading(false); })
+      .then((data) => { 
+        setPost(data); 
+        setContent((data.content as string) || "");
+        setLoading(false); 
+      })
       .catch(() => { setError("Failed to load post"); setLoading(false); });
   }, [id]);
 
@@ -34,8 +40,9 @@ export default function EditBlogPostPage() {
       title: fd.get("title"),
       slug: fd.get("slug"),
       excerpt: fd.get("excerpt"),
-      content: fd.get("content"),
+      content: content,
       tag: fd.get("tag"),
+      featured_image: fd.get("featured_image"),
       published: fd.get("published") === "on",
       meta_title: fd.get("meta_title"),
       meta_description: fd.get("meta_description"),
@@ -56,7 +63,7 @@ export default function EditBlogPostPage() {
   if (loading) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-12 rounded-xl bg-muted animate-pulse" />)}</div>;
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <Link href="/admin/blog" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to posts
       </Link>
@@ -69,10 +76,20 @@ export default function EditBlogPostPage() {
           <div><Label htmlFor="title">Title *</Label><Input id="title" name="title" required className="mt-1.5" defaultValue={post.title as string ?? ""} /></div>
           <div><Label htmlFor="slug">Slug *</Label><Input id="slug" name="slug" required className="mt-1.5" defaultValue={post.slug as string ?? ""} /></div>
           <div><Label htmlFor="excerpt">Excerpt</Label><Textarea id="excerpt" name="excerpt" rows={3} className="mt-1.5" defaultValue={post.excerpt as string ?? ""} /></div>
-          <div><Label htmlFor="content">Content</Label><Textarea id="content" name="content" rows={12} className="mt-1.5 font-mono text-sm" defaultValue={post.content as string ?? ""} /></div>
+          
+          <div>
+            <Label htmlFor="featured_image">Featured Image URL</Label>
+            <Input id="featured_image" name="featured_image" className="mt-1.5" defaultValue={post.featured_image as string ?? ""} placeholder="/assets/blog/image.png" />
+          </div>
+
+          <div>
+            <Label className="mb-2 block">Content (Rich Text)</Label>
+            <RichTextEditor value={content} onChange={setContent} />
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div><Label htmlFor="tag">Tag</Label><Input id="tag" name="tag" className="mt-1.5" defaultValue={post.tag as string ?? ""} /></div>
-            <div className="flex items-end">
+            <div className="flex items-end pb-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="published" className="h-4 w-4 rounded border-border" defaultChecked={!!post.published} />
                 <span className="text-sm font-medium">Published</span>
@@ -87,7 +104,7 @@ export default function EditBlogPostPage() {
           <div><Label htmlFor="meta_description">Meta Description</Label><Textarea id="meta_description" name="meta_description" rows={2} className="mt-1.5" defaultValue={post.meta_description as string ?? ""} /></div>
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 pb-20">
           <Button variant="outline" asChild><Link href="/admin/blog">Cancel</Link></Button>
           <Button type="submit" disabled={saving}><Save className="mr-2 h-4 w-4" /> {saving ? "Saving..." : "Update Post"}</Button>
         </div>

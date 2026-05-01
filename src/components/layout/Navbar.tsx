@@ -7,6 +7,7 @@ import { Menu, X, ArrowRight, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NAV_LINKS, BRAND, SERVICES } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -34,11 +35,12 @@ export const Navbar = () => {
     >
       <div className="container-tight flex h-16 md:h-24 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group" aria-label={BRAND.name}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/assets/johnnybits-logo.png"
             alt={`${BRAND.name} logo`}
             className="h-12 md:h-16 w-auto transition-all group-hover:scale-105"
+            width={200}
+            height={200}
           />
         </Link>
 
@@ -66,9 +68,9 @@ export const Navbar = () => {
                   </Link>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[340px] bg-card rounded-2xl border border-border shadow-elevated opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 flex flex-col p-2.5 translate-y-2 group-hover:translate-y-0">
                     {SERVICES.map((s) => (
-                      <Link 
-                        key={s.slug} 
-                        href={`/services/${s.slug}`} 
+                      <Link
+                        key={s.slug}
+                        href={`/services/${s.slug}`}
                         className="px-4 py-3 rounded-xl transition-colors flex flex-col gap-1 hover:bg-muted/60"
                       >
                         <span className="text-sm font-bold text-foreground">{s.title}</span>
@@ -138,7 +140,7 @@ export const Navbar = () => {
                       isActive ? "bg-accent text-accent-foreground" : "text-foreground/80 hover:bg-muted/50"
                     )}>
                       <Link href={l.to} className="px-3 py-3 flex-1 font-medium">{l.label}</Link>
-                      <button 
+                      <button
                         onClick={(e) => { e.preventDefault(); setMobileServicesOpen(!mobileServicesOpen); }}
                         className="px-4 py-3"
                         aria-label="Toggle services menu"
