@@ -197,23 +197,26 @@ export const SERVICES: ServiceItem[] = [
 ];
 
 export const PORTFOLIO = [
-  { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/", image: "" },
+  { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/", image: "/assets/portfolio/Digital Marketing & Growth Agency Canada - Moonstone Digital.webp" },
   { name: "Gaidi", tags: ["Web Development"], url: "https://gaidi.de/", image: "/assets/portfolio/German-African Initiative for Development and Integration – (GAIDI) UG. WordPress Web Design.webp" },
   { name: "Gate To Africa", tags: ["SEO", "Web Development"], url: "https://gate-to-africa.de/", image: "/assets/portfolio/Gate to Africa - Entdecken Sie die Vielfalt Afrikas mit Gate to Africa - Web Design & SEO.webp" },
-  { name: "SmartGold Affiliate", tags: ["Web Development"], url: "https://smartgold.ng/", image: "" },
-  { name: "SmartNetwork Platform", tags: ["SEO", "Web Development"], url: "https://smartnetwork.ng/", image: "" },
+
+  // { name: "SmartNetwork Platform", tags: ["SEO", "Web Development"], url: "https://smartnetwork.ng/", image: "" },
   { name: "Greentide Home", tags: ["Web Design"], url: "#", image: "/assets/portfolio/Greentide Home.webp" },
-  { name: "Bara.co Fashion Store", tags: ["E-commerce"], url: "https://bara.co.com/", image: "" },
-  { name: "Rukayon School System", tags: ["Web App"], url: "https://rukayon.com/", image: "" },
+  // { name: "Bara.co Fashion Store", tags: ["E-commerce"], url: "https://bara.co.com/", image: "" },
+  { name: "Travels Insider", tags: ["Web Design", "WordPress"], url: "https://travelsinsider.com", image: "/assets/portfolio/Travels Insider.webp" },
+  { name: "JKJ Builders and Developers Ltd", tags: ["WordPress", "Web Design"], url: "https://jkjbuilders.com/", image: "/assets/portfolio/JKJ Builders and Developers Ltd.webp" },
   { name: "Chester Legal Service", tags: ["Web Development"], url: "https://clsattorneys.legal/", image: "" },
-  { name: "Floors Nigeria", tags: ["SEO", "Web Development"], url: "https://floornigeria.com/", image: "" },
-  { name: "Deartsy Interiors", tags: ["SEO", "Web Development"], url: "https://deartsyinteriors.com/", image: "" },
-  { name: "Zynoplus", tags: ["Laravel", "VueJS"], url: "https://www.zynoplus.com/", image: "" },
-  { name: "Largelife Furniture", tags: ["E-commerce", "SEO"], url: "https://largelifedesigns.com/", image: "" },
+  { name: "Floors Nigeria", tags: ["SEO", "Web Development"], url: "https://floornigeria.com/", image: "/assets/portfolio/Floors Nigeria.webp" },
+  { name: "Credify Network", tags: ["Affiliate Marketing", "Laravel", "TailwindCSS", "API Development"], url: "https://credifynetwork.com/", image: "/assets/portfolio/Unlock Possibilities and Start Earning with Affiliate Marketing Today Credify.webp" },
+  { name: "Incubation World", tags: ["Laravel", "TailwindCSS", "Web Development"], url: "https://incubationworld.org/", image: "/assets/portfolio/Incubation World.webp" },
+  { name: "Everything Polystyrene Concepts", tags: ["WordPress", "Web Design", "SEO"], url: "https://www.zynoplus.com/", image: "/assets/portfolio/Everything Polystyrene Concepts.webp" },
+  { name: "Largelife Furniture", tags: ["E-commerce", "SEO"], url: "https://largelifedesigns.com/", image: "/assets/portfolio/Largelife Furnitures Best Furniture company in Lagos.webp" },
 ];
+
 
 export const CLIENTS = [
   "Chuvie Decor", "Gap Castle", "Megasea Paints", "Floors Nigeria",
   "Gaidi", "CLS Attorneys", "Gate To Africa", "Moonstone Digital",
-  "Bon Voyage Hotel", "MarinaTech",
+  "Bon Voyage Hotel", "MarinaTech", "Everything Polystyrene Concepts", "Klasik Nigeria Ltd"
 ];

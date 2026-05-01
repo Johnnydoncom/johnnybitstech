@@ -225,28 +225,32 @@ const Index = () => {
                   href={p.url}
                   target="_blank"
                   rel="noopener"
-                  className="reveal group relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-brand shadow-card hover:shadow-elevated transition-smooth"
+                  className="reveal group flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-card to-muted/30 shadow-card hover:shadow-brand hover:border-primary/50 hover:-translate-y-1 transition-all duration-500"
                   data-delay={`${(i % 3) * 80}`}
                 >
-                  <img
-                    src={screenshot}
-                    alt={`${p.name} website screenshot — project by Johnnybits`}
-                    loading="lazy"
-                    className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,hsl(var(--primary-glow)/0.4),transparent_60%)]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-surface-dark/85 via-surface-dark/40 to-surface-dark/10 group-hover:from-surface-dark/70 transition-smooth" />
-                  <div className="absolute inset-0 p-7 flex flex-col justify-end text-primary-foreground">
-                    <div className="flex flex-wrap gap-1.5 mb-3">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-muted border-b border-border/50">
+                    <img
+                      src={screenshot}
+                      alt={`${p.name} website screenshot — project by Johnnybits`}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5 z-10">
                       {p.tags.map((t) => (
-                        <span key={t} className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-white/15 backdrop-blur">
+                        <span key={t} className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gradient-brand text-white shadow-md border border-white/20">
                           {t}
                         </span>
                       ))}
                     </div>
-                    <div className="font-display text-2xl font-bold">{p.name}</div>
-                    <div className="mt-2 text-sm opacity-80 inline-flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
-                      Visit live site <ArrowRight className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col flex-1 p-5 relative">
+                    <div className="absolute top-0 right-5 -translate-y-1/2 w-10 h-10 bg-gradient-brand rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 group-hover:-translate-y-6 transition-all duration-500 shadow-glow">
+                      <ArrowRight className="h-5 w-5 -rotate-45" />
+                    </div>
+                    <div className="font-display text-xl font-bold text-foreground group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-primary-glow transition-all duration-300">{p.name}</div>
+                    <div className="mt-4 text-sm font-medium text-muted-foreground inline-flex items-center gap-1.5 group-hover:text-foreground transition-colors">
+                      Visit live site <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </a>

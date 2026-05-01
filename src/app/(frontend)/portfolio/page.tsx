@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { PORTFOLIO } from "@/lib/brand";
 
-const FILTERS = ["All", "Web Development", "SEO", "E-commerce", "Web App"];
+const FILTERS = ["All", "Web Development", "SEO", "E-commerce", "WordPress", "Web App"];
 
 const Portfolio = () => {
   const [filter, setFilter] = useState("All");
@@ -14,7 +14,7 @@ const Portfolio = () => {
 
   return (
     <>
-      
+
 
       <section className="surface-dark relative overflow-hidden -mt-16 md:-mt-20 pt-32 pb-20">
         <div className="absolute inset-0 grid-bg opacity-30" />
@@ -37,11 +37,10 @@ const Portfolio = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-smooth ${
-                  filter === f
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-smooth ${filter === f
                     ? "bg-gradient-brand text-primary-foreground shadow-brand"
                     : "bg-muted text-foreground/70 hover:bg-accent"
-                }`}
+                  }`}
               >
                 {f}
               </button>
@@ -50,39 +49,44 @@ const Portfolio = () => {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {items.map((p, i) => {
-              const screenshot = `https://image.thum.io/get/width/800/crop/600/noanimate/${p.url}`;
+              const screenshot = p.image || `https://image.thum.io/get/width/800/crop/600/noanimate/${p.url}`;
               return (
                 <a
                   key={p.name}
                   href={p.url}
                   target="_blank"
                   rel="noopener"
-                  className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-card hover:shadow-elevated hover:-translate-y-1 transition-smooth animate-scale-in flex flex-col"
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-b from-card to-muted/30 shadow-card hover:shadow-brand hover:border-primary/50 hover:-translate-y-1 transition-all duration-500 animate-scale-in"
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                  <div className="relative aspect-[16/10] overflow-hidden bg-muted border-b border-border/50">
                     <img
                       src={screenshot}
                       alt={`${p.name} website screenshot — project by Johnnybits`}
                       loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                      className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
                       onError={(e) => {
                         const img = e.currentTarget;
                         img.style.display = "none";
                         img.parentElement?.classList.add("bg-gradient-brand");
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-surface-dark/80 via-surface-dark/20 to-transparent opacity-90 group-hover:opacity-70 transition-smooth" />
-                    <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5 z-10">
                       {p.tags.map((t) => (
-                        <span key={t} className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-background/80 text-foreground backdrop-blur">{t}</span>
+                        <span key={t} className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gradient-brand text-white shadow-md border border-white/20">
+                          {t}
+                        </span>
                       ))}
                     </div>
                   </div>
-                  <div className="p-5">
-                    <div className="font-display text-xl font-bold text-foreground">{p.name}</div>
-                    <div className="mt-2 text-sm text-muted-foreground inline-flex items-center gap-1.5 group-hover:text-primary group-hover:translate-x-1 transition-all">
-                      Visit live site <ExternalLink className="h-4 w-4" />
+                  <div className="flex flex-col flex-1 p-5 relative">
+                    <div className="absolute top-0 right-5 -translate-y-1/2 w-10 h-10 bg-gradient-brand rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 group-hover:-translate-y-6 transition-all duration-500 shadow-glow">
+                      <ExternalLink className="h-4 w-4" />
+                    </div>
+                    <div className="font-display text-xl font-bold text-foreground group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:to-primary-glow transition-all duration-300">{p.name}</div>
+                    <div className="mt-4 text-sm font-medium text-muted-foreground inline-flex items-center gap-1.5 group-hover:text-foreground transition-colors">
+                      Visit live site <ExternalLink className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </a>
