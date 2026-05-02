@@ -70,7 +70,7 @@ export const Navbar = () => {
                     {SERVICES.map((s) => (
                       <Link
                         key={s.slug}
-                        href={`/services/${s.slug}`}
+                        href={`/${s.slug}`}
                         className="px-4 py-3 rounded-xl transition-colors flex flex-col gap-1 hover:bg-muted/60"
                       >
                         <span className="text-sm font-bold text-foreground">{s.title}</span>
@@ -153,10 +153,10 @@ export const Navbar = () => {
                         {SERVICES.map((s) => (
                           <Link
                             key={s.slug}
-                            href={`/services/${s.slug}`}
+                            href={`/${s.slug}`}
                             className={cn(
                               "px-3 py-2.5 rounded-lg text-sm transition-colors",
-                              pathname === `/services/${s.slug}` ? "bg-primary/10 text-primary font-bold" : "text-foreground/70 hover:text-foreground hover:bg-muted/50"
+                              pathname === `/${s.slug}` ? "bg-primary/10 text-primary font-bold" : "text-foreground/70 hover:text-foreground hover:bg-muted/50"
                             )}
                           >
                             {s.title}

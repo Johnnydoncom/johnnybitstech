@@ -21,10 +21,32 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { constructMetadata } from "@/lib/seo";
+import { SITE_NAME, SEPARATOR } from "@/config/site";
 
 export const metadata = constructMetadata({
-  title: "Web Application Development | Johnnybits Technology",
-  description: "Robust web apps with the latest stacks — React, Laravel, VueJS, APIs. Custom dashboards, portals, booking systems and internal tools.",
+  title: "Web Application Development " + SEPARATOR + "Web Developers in Nigeria" + SEPARATOR + SITE_NAME,
+  description: "Robust web apps with the latest stacks — React, Laravel, VueJS, APIs. Custom dashboards, portals, booking systems and internal tools. We are Nigerian expert web developers when it comes to web application development & web portals.",
+  keywords: [
+    "Web Application Development",
+    "Web Developers in Nigeria",
+    "Web Developers in Ibadan",
+    "Web Development Company in Nigeria",
+    "Web Development Company in Ibadan",
+    "Web Application Development in Nigeria",
+    "Web Application Development in Ibadan",
+    "Custom Web Application Development",
+    "Web Application Development Services",
+    "Web Application Development Company",
+    "Web Application Development Company in Ibadan",
+    "Web Application Development Company in Nigeria",
+    "Web Application Development Services in Ibadan",
+    "Web Application Development Services in Nigeria",
+    "Web Application Development Company in Ibadan",
+    "Web Application Development Company in Nigeria",
+    "Web Application Development Services in Ibadan",
+    "Web Application Development Services in Nigeria",
+  ],
+  canonicalUrl: "/web-development-services"
 });
 
 export default function WebDevelopmentPage() {

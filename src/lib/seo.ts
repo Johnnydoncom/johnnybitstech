@@ -7,18 +7,29 @@ interface SEOProps {
   image?: string;
   noIndex?: boolean;
   absoluteTitle?: boolean;
+  keywords?: string[];
+  canonicalUrl?: string;
 }
 
 export function constructMetadata({
   title,
   description,
-  image = "/og-image.png",
+  image = "/assets/johnnybits-logo.png",
   noIndex = false,
-  absoluteTitle = false
+  absoluteTitle = false,
+  keywords,
+  canonicalUrl,
 }: SEOProps): Metadata {
   return {
+    metadataBase: new URL(SITE_URL),
     title: absoluteTitle ? { absolute: title } : title,
     description,
+    keywords,
+    ...(canonicalUrl && {
+      alternates: {
+        canonical: canonicalUrl,
+      },
+    }),
     openGraph: {
       title,
       description,

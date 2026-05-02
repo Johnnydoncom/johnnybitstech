@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} | Digital Solutions`,
     images: [
       {
-        url: '/og-image.png', // Add this image to your public folder
+        url: '/assets/johnnybits-logo.png', // Add this image to your public folder
         width: 1200,
         height: 630,
         alt: `${SITE_NAME} Logo`,
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${SITE_NAME} | Digital Solutions`,
     description: "Johnnybits Technology is a premium digital agency specializing in web design, development, and digital marketing solutions.",
-    images: ['/og-image.png'], // Add this image to your public folder
+    images: ['/assets/johnnybits-logo.png'], // Add this image to your public folder
   },
   alternates: {
     canonical: SITE_URL,

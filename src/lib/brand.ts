@@ -31,6 +31,7 @@ export type ServiceItem = {
   long: string;
   bullets: string[];
   icon: string;
+  image?: string;
   intro: string;
   idealFor: string[];
   outcomes: string[];
@@ -41,12 +42,13 @@ export type ServiceItem = {
 
 export const SERVICES: ServiceItem[] = [
   {
-    slug: "web-design",
+    slug: "corporate-web-design-nigeria",
     title: "Corporate Web Design",
     short: "Fluid, mobile-first websites that convert visitors into customers.",
     long: "We craft responsive, SEO-ready websites with attractive graphics and engaging content — built to load fast, look gorgeous on every device, and rank in Nigeria.",
     bullets: ["Fluid Web Design", "Custom Web Design", "WordPress & Headless CMS", "Conversion-focused UX"],
     icon: "Layout",
+    image: "/assets/services/fluid-web-design-company-in-nigeria.png",
     intro: "Our corporate web design service is built for brands that want more than a pretty homepage. We create conversion-focused websites that communicate trust quickly, explain your offer clearly, and guide visitors toward enquiry, purchase or booking. Every Johnnybits website is tuned for Nigerian search behaviour, mobile users and the realities of slower network conditions.",
     idealFor: ["Professional service firms that need more qualified enquiries", "SMEs rebranding from outdated WordPress websites", "Startups that need a polished launch-ready web presence"],
     outcomes: ["Clearer positioning and stronger first impressions", "Higher conversion rates from organic and paid traffic", "Fast-loading responsive pages that support SEO growth"],
@@ -63,12 +65,13 @@ export const SERVICES: ServiceItem[] = [
     ],
   },
   {
-    slug: "web-development",
+    slug: "web-development-services",
     title: "Web Application Development",
     short: "Robust web apps with the latest stacks — React, Laravel, VueJS, APIs.",
     long: "Combining strong engineering with modern frameworks, we ship custom web applications tailored to your business — secure, scalable and easy to maintain.",
     bullets: ["Progressive Web Apps", "Laravel & Node.js", "VueJS & React", "REST & GraphQL APIs"],
     icon: "Code2",
+    image: "/assets/services/responsive-website-design-agency-in-nigeria-img1.png",
     intro: "When your business needs more than brochure pages, we build custom web applications that streamline operations, automate workflows and support growth. From dashboards and portals to booking systems and internal tools, our development process balances technical architecture, usability and long-term maintainability.",
     idealFor: ["Businesses replacing manual operations with custom software", "Startups launching MVPs and customer portals", "Teams needing integrations, automation and reporting tools"],
     outcomes: ["Less manual admin and faster internal operations", "Scalable product foundations for future features", "Secure systems with clear user flows and dependable performance"],
@@ -85,12 +88,13 @@ export const SERVICES: ServiceItem[] = [
     ],
   },
   {
-    slug: "seo-digital-marketing",
+    slug: "search-engine-optimization-seo",
     title: "SEO & Digital Marketing",
     short: "Get found on Google in Nigeria. SEO, SMO, PPC, content & analytics.",
     long: "We grow your client base through technical SEO, content marketing, social media, paid ads and analytics — drastically increasing visibility, traffic and conversions.",
     bullets: ["Local SEO Nigeria", "Google Ads & Meta Ads", "Content & Backlinks", "Analytics & Reporting"],
     icon: "TrendingUp",
+    image: "/assets/services/search-engine-optimization-seo-advance-analytics.png",
     intro: "Our digital marketing service is designed for businesses that want measurable growth, not vanity metrics. We combine SEO, content, paid media and conversion tracking to help Johnnybits clients dominate relevant searches, attract qualified prospects and turn traffic into revenue. We tailor campaigns to Nigerian markets, search intent and local competition.",
     idealFor: ["Businesses that want more visibility on Google in Nigeria", "Brands ready to turn ad spend into qualified leads", "Companies needing a clearer content and analytics strategy"],
     outcomes: ["Higher rankings for local and industry keywords", "More qualified leads from organic and paid channels", "Clearer attribution through tracking, reporting and campaign refinement"],
@@ -107,12 +111,13 @@ export const SERVICES: ServiceItem[] = [
     ],
   },
   {
-    slug: "ecommerce",
+    slug: "ecommerce-web-development",
     title: "E-commerce Solutions",
     short: "End-to-end online stores that scale from zero to nine figures.",
     long: "Our team designs and builds end-to-end ecommerce systems on WooCommerce, Shopify and custom stacks — built for Nigerian payments, logistics and growth.",
     bullets: ["WooCommerce & Shopify", "Paystack / Flutterwave", "Inventory & Logistics", "Conversion Optimization"],
     icon: "ShoppingBag",
+    image: "/assets/services/ecommerce-solutions.png",
     intro: "We help retailers and product-based businesses launch ecommerce systems that feel trustworthy, move customers smoothly through checkout and support growth over time. From product structure and merchandising to payment integration and CRO, our focus is building online stores that sell consistently on mobile and desktop.",
     idealFor: ["Retail brands moving sales online", "Existing stores that need better UX and checkout performance", "Multi-product businesses needing structure, inventory flow and marketing support"],
     outcomes: ["Better checkout completion and lower friction", "Stronger product presentation and merchandising", "Store foundations ready for ads, SEO and repeat sales"],
@@ -129,12 +134,13 @@ export const SERVICES: ServiceItem[] = [
     ],
   },
   {
-    slug: "mobile-apps",
+    slug: "mobile-apps-development",
     title: "Mobile App Development",
     short: "Beautiful Android & iOS apps for startups and enterprises.",
     long: "A leading mobile apps development team in Nigeria — we ship polished, fully-functional Android and iOS apps with React Native and Flutter.",
     bullets: ["React Native", "Flutter", "Native Android / iOS", "App Store Launch"],
     icon: "Smartphone",
+    image: "/assets/services/Mobile-App-Development-Company-in-Ibadan-Nigeria.jpg",
     intro: "Johnnybits designs and develops mobile apps that are intuitive, fast and genuinely useful in day-to-day business or customer experiences. We focus on strong product logic, clean interaction design and dependable app journeys that help brands launch with confidence and keep users engaged after install.",
     idealFor: ["Founders launching consumer or business apps", "Companies extending their service into mobile experiences", "Teams needing booking, ordering, marketplace or engagement products"],
     outcomes: ["A smoother mobile experience for customers or staff", "Launch-ready Android and iOS products with clear UX", "Stronger retention through thoughtful flows and performance"],
@@ -157,6 +163,7 @@ export const SERVICES: ServiceItem[] = [
     long: "Passionate graphic designers in Ibadan crafting brochures, banners, flyers, business cards and full brand identities that grab attention and build trust.",
     bullets: ["Logo & Brand Identity", "Social Media Creatives", "Print & Packaging", "Pitch Decks"],
     icon: "PenTool",
+    image: "/assets/services/Graphic-Design-Company-in-Ibadan-Nigeria.jpg",
     intro: "Our graphic design service helps businesses present themselves with clarity, consistency and polish. Whether you need a stronger brand identity, campaign visuals or everyday marketing assets, we create designs that look professional, communicate quickly and support growth across digital and print touchpoints.",
     idealFor: ["Businesses refreshing their visual identity", "Teams that need consistent campaign and social media creatives", "Brands preparing marketing materials, proposals and presentations"],
     outcomes: ["A more credible and recognisable brand presence", "Design assets that support marketing performance", "Consistency across print, web and social channels"],
@@ -173,12 +180,13 @@ export const SERVICES: ServiceItem[] = [
     ],
   },
   {
-    slug: "website-maintenance",
+    slug: "website-maintenance-and-support",
     title: "Website Maintenance",
     short: "Keep your site fast, secure and always up — so you can focus on business.",
     long: "Our maintenance retainers cover updates, backups, security patches, performance and content edits — maximizing uptime and minimizing disruption.",
     bullets: ["Security & Backups", "Performance Tuning", "Content Updates", "24/7 Monitoring"],
     icon: "ShieldCheck",
+    image: "/assets/services/ico-web-support-maintenance-support.png",
     intro: "A website should keep working after launch. Our maintenance service helps businesses stay secure, current and high-performing without relying on emergency fixes. We proactively monitor, update and improve your website so downtime, broken pages and slow performance do not quietly cost you leads or sales.",
     idealFor: ["Businesses without an in-house web team", "Websites that need regular updates and protection", "Growing brands that cannot afford downtime or neglected content"],
     outcomes: ["Greater reliability and lower risk of issues", "Improved speed, uptime and user trust", "Ongoing support for updates, edits and technical fixes"],

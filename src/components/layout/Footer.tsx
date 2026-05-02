@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mail, Phone, MapPin, MessageCircle, Send } from "lucide-react";
 import { BRAND, NAV_LINKS, SERVICES } from "@/lib/brand";
+import Image from "next/image";
 
 export const Footer = () => {
   return (
@@ -8,12 +9,11 @@ export const Footer = () => {
       <div className="container-tight py-16 grid gap-12 grid-cols-2 lg:grid-cols-4">
         <div className="col-span-2 lg:col-span-1">
           <Link href="/" className="inline-flex items-center gap-2 mb-5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/johnnybits-logo.png" alt={BRAND.name} className="h-10 w-auto brightness-110" />
+            <Image src="/assets/johnnybits-logo.png" alt={BRAND.name} className="h-10 w-auto brightness-110" width={100} height={70} />
           </Link>
           <p className="text-sm text-surface-dark-foreground/75 leading-relaxed max-w-xs">
             Creative web design, development & digital marketing agency based in
-            Ibadan, Nigeria. We help brands grow online.
+            Ibadan, Nigeria. We work with companies, organizations, startups, private / public schools, and churches to create amazing web solutions.
           </p>
         </div>
 

@@ -20,10 +20,23 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { constructMetadata } from "@/lib/seo";
+import { SITE_NAME, SEPARATOR } from "@/config/site";
 
 export const metadata = constructMetadata({
-  title: "Corporate Web Design | Johnnybits Technology",
-  description: "Fluid, mobile-first websites that convert visitors into customers. Custom web design, WordPress & headless CMS — built to load fast and rank in Nigeria.",
+  title: "Web Design Company in Ibadan" + SEPARATOR + "Web Designers in Ibadan" + SEPARATOR + SITE_NAME,
+  description: "Web designers in Ibadan - Nigeria's leading web design company in Ibadan is here to help grow your business. Custom web design, WordPress & headless CMS — built to load fast and rank in Nigeria.",
+  keywords: [
+    "Web Design Company in Ibadan",
+    "Web Designers in Ibadan",
+    "Corporate Web Design in Ibadan",
+    "Professional Web Design in Ibadan",
+    "Best Web Design Company in Nigeria",
+    "Website Design in Nigeria",
+    "Web Development in Ibadan",
+    "Digital Marketing in Ibadan",
+
+  ],
+  canonicalUrl: "/corporate-web-design-nigeria",
 });
 
 export default function WebDesignPage() {

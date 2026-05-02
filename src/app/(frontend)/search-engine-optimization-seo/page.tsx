@@ -20,10 +20,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { constructMetadata } from "@/lib/seo";
+import { SEPARATOR, SITE_NAME } from "@/config/site";
 
 export const metadata = constructMetadata({
-  title: "SEO & Digital Marketing | Johnnybits Technology",
-  description: "Get found on Google in Nigeria. Local SEO, Google Ads, Meta Ads, content marketing, analytics & reporting — we grow your traffic and conversions.",
+  title: "SEO & Digital Marketing Company in Ibadan" + SEPARATOR + "Search Engine Optimization" + SEPARATOR + SITE_NAME,
+  description: "SEO Company in Ibadan. Get found on Google in Nigeria. Local SEO, Google Ads, Meta Ads, content marketing, analytics & reporting — we grow your traffic and conversions.",
+  keywords: ["SEO Company in Ibadan", "Digital Marketing Company in Ibadan", "Search Engine Optimization", "Local SEO Nigeria", "Google Ads", "Meta Ads", "Content Marketing", "Analytics & Reporting", "Online Marketing Company in Ibadan"],
+  canonicalUrl: "/search-engine-optimization-seo"
 });
 
 export default function SEODigitalMarketingPage() {

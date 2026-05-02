@@ -12,7 +12,8 @@ import Image from "next/image";
 export const metadata = constructMetadata({
   title: "Web Designers in Ibadan | Digital Marketing | Johnnybits",
   description: "Web Designers in Ibadan - We are Nigeria&#039;s leading web design company. We help grow your business with Web Design, Digital Marketing and E-Commerce services.",
-  absoluteTitle: true
+  absoluteTitle: true,
+  canonicalUrl: "/",
 });
 
 const ICONS = { Layout, Code2, TrendingUp, ShoppingBag, Smartphone, PenTool, ShieldCheck };
@@ -112,6 +113,82 @@ const Index = () => {
         </div>
       </section>
 
+      {/* WHO WE ARE */}
+      <section className="py-24 bg-card relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-primary-glow/5 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="container-tight relative z-10 grid lg:grid-cols-2 gap-16 items-center">
+          <div className="relative order-2 lg:order-1">
+            {/* Image/Visual grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 pt-12">
+                <div className="reveal rounded-2xl overflow-hidden shadow-card border border-border bg-muted/20">
+                  <Image src="/assets/portfolio/Unlock Possibilities and Start Earning with Affiliate Marketing Today Credify.webp" alt="Top Web development company in Nigeria" title="About the Top Web Development Company in Nigeria" width={400} height={500} className="w-full h-full object-cover aspect-[4/5]" />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="reveal rounded-2xl overflow-hidden shadow-card border border-border bg-muted/20" data-delay="100">
+                  <Image src="/assets/Johnnybits-Design-and-Development-of-Paint-Masters-Website.jpg" alt="Web Design Agency Ibadan" width={400} height={400} className="w-full h-full object-cover aspect-square" title="About the Top Web Designers in Ibadan, Nigeria" />
+                </div>
+                <div className="reveal rounded-2xl bg-gradient-brand p-8 text-primary-foreground shadow-brand flex flex-col justify-center items-center text-center aspect-square" data-delay="200">
+                  <div className="font-display text-5xl font-bold">8+</div>
+                  <div className="text-sm font-medium mt-2 opacity-90 uppercase tracking-wider">Years of<br />Experience</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Absolute badge */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card/40 backdrop-blur-md border border-border shadow-2xl rounded-full p-4 hidden md:block">
+              <div className="bg-primary text-primary-foreground rounded-full p-3 shadow-inner">
+                <Rocket className="h-8 w-8" />
+              </div>
+            </div>
+          </div>
+
+          <div className="order-1 lg:order-2">
+            <p className="reveal text-sm font-semibold uppercase tracking-wider text-primary">Who We Are</p>
+            <h2 className="reveal mt-3 font-display text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15]" data-delay="80">
+              Creative Web Design & Development Company in Ibadan Nigeria.
+            </h2>
+            <div className="reveal mt-6 space-y-5 text-lg text-muted-foreground leading-relaxed" data-delay="160">
+              <p>
+                Johnnybits is a premium web design company and digital agency based in Ibadan, Nigeria. We are obsessed with helping businesses succeed and scale through excellent, high-performing digital services.
+              </p>
+              <p>
+                We are specialized experts in <strong>Custom Web Design</strong>, <strong>eCommerce Platforms</strong>, <strong>Robust Web App Development</strong>, <strong>Search Engine Optimization (SEO)</strong>, and proactive <strong>Website Maintenance</strong>.
+              </p>
+            </div>
+
+            <div className="reveal mt-8 pt-6 border-t border-border" data-delay="240">
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                {[
+                  "Result-Driven SEO",
+                  "Modern Custom Design",
+                  "Scalable Web Apps",
+                  "Reliable Maintenance"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-foreground font-medium">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="reveal mt-10" data-delay="320">
+              <Button asChild size="lg" className="rounded-full shadow-brand group">
+                <Link href="/contact">
+                  Discuss your project
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES */}
       <section className="py-24">
         <div className="container-tight">
@@ -125,23 +202,38 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SERVICES.map((s, i) => {
+
+              const imageUrl = s.image || "/assets/Johnnybits-Design-and-Development-of-Paint-Masters-Website.jpg";
               const Icon = ICONS[s.icon as keyof typeof ICONS] ?? Sparkles;
+
               return (
                 <Link
                   key={s.slug}
-                  href={`/services/${s.slug}`}
-                  className="reveal group relative overflow-hidden rounded-2xl border border-border bg-card p-7 shadow-card hover:shadow-elevated hover:-translate-y-1 transition-smooth"
+                  href={`/${s.slug}`}
+                  className="reveal group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card hover:shadow-elevated hover:-translate-y-1 transition-smooth"
                   data-delay={`${(i % 3) * 80}`}
                 >
-                  <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-gradient-brand opacity-0 group-hover:opacity-20 blur-2xl transition-smooth" />
-                  <div className="relative">
-                    <div className="inline-grid place-items-center h-12 w-12 rounded-xl bg-gradient-brand text-primary-foreground shadow-brand">
-                      <Icon className="h-6 w-6" />
+                  <div className="relative h-48 w-full overflow-hidden bg-muted">
+                    <Image
+                      src={imageUrl}
+                      alt={s.title}
+                      width={400}
+                      height={300}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {/* Dark gradient overlay at the bottom of the image for contrast if needed */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+
+                    {/* Small icon badge over the image */}
+                    <div className="absolute top-4 right-4 inline-grid place-items-center h-10 w-10 rounded-xl bg-white/90 backdrop-blur-sm text-primary shadow-sm">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="mt-5 font-display text-xl font-bold">{s.title}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.short}</p>
+                  </div>
+                  <div className="relative p-6 flex flex-col flex-grow">
+                    <h3 className="font-display text-xl font-bold">{s.title}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed flex-grow">{s.short}</p>
                     <div className="mt-5 flex items-center gap-1.5 text-sm font-semibold text-primary">
                       Learn more
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

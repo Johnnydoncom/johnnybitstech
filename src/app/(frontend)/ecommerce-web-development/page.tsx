@@ -3,10 +3,22 @@ import { ArrowRight, ArrowLeft, CheckCircle2, ShoppingBag, CreditCard, Package, 
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { constructMetadata } from "@/lib/seo";
+import { SEPARATOR, SITE_NAME } from "@/config/site";
 
 export const metadata = constructMetadata({
-  title: "E-commerce Solutions | Johnnybits Technology",
-  description: "End-to-end online stores on WooCommerce, Shopify and custom stacks — built for Nigerian payments, logistics and growth.",
+  title: "Ecommerce Website Design and Development in Nigeria" + SEPARATOR + "E-commerce Solutions" + SEPARATOR + SITE_NAME,
+  description: "End-to-end online stores on WooCommerce, Shopify and custom stacks — built for Nigerian payments, logistics and growth. Johnnybits is a leading eCommerce website development agency in Nigeria.",
+  keywords: [
+    "Ecommerce Website Design and Development in Nigeria",
+    "Ecommerce Website Design and Development in Nigeria",
+    "WooCommerce Web Development Company in Ibadan",
+    "Shopify Website Design and Development in Nigeria",
+    "Online Store Development in Nigeria",
+    "Ecommerce Marketing in Ibadan",
+    "Web Development in Ibadan",
+    "Digital Marketing in Ibadan"
+  ],
+  canonicalUrl: "/ecommerce-web-development"
 });
 
 export default function EcommercePage() {
