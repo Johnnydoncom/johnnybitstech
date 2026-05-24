@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
         destination: '/contact-us',
         permanent: true,
       },
+      {
+        source: '/e-commerce-web-design-development',
+        destination: '/ecommerce-web-development',
+        permanent: true
+      },
     ]
   },
 };
