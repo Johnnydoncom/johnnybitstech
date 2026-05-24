@@ -31,7 +31,12 @@ const nextConfig: NextConfig = {
         source: '/e-commerce-web-design-development',
         destination: '/ecommerce-web-development',
         permanent: true
-      }
+      },
+      {
+        source: '/corporate-web-design-company',
+        destination: '/corporate-web-design-nigeria',
+        permanent: true
+      },
     ]
   }
 };
