@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { Home, AlertCircle } from 'lucide-react';
-
+import { Layout } from '@/components/layout/Layout';
+// import and add layout
 export default function NotFound() {
   return (
-    <>
+
+    <Layout>
+      {/* Hero Section */}
       <section className="surface-dark relative overflow-hidden -mt-16 md:-mt-20 pt-32 pb-24">
         <div className="absolute inset-0 grid-bg opacity-30" />
         <div className="absolute top-0 left-1/3 h-96 w-96 rounded-full bg-primary/30 blur-3xl animate-blob" />
@@ -47,6 +50,6 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-    </>
+    </Layout>
   );
 }
