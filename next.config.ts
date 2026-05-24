@@ -31,9 +31,9 @@ const nextConfig: NextConfig = {
         source: '/e-commerce-web-design-development',
         destination: '/ecommerce-web-development',
         permanent: true
-      },
+      }
     ]
-  },
+  }
 };
 
 
