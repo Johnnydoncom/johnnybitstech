@@ -1,11 +1,20 @@
 import Link from 'next/link';
 import { Home, AlertCircle } from 'lucide-react';
-import { Layout } from "@/components/layout/Layout";
 
 export default function NotFound() {
   return (
-    <Layout>
-      <div className="min-h-[80vh] w-full flex flex-col items-center justify-center bg-background p-4 sm:p-8">
+    <>
+      <section className="surface-dark relative overflow-hidden -mt-16 md:-mt-20 pt-32 pb-24">
+        <div className="absolute inset-0 grid-bg opacity-30" />
+        <div className="absolute top-0 left-1/3 h-96 w-96 rounded-full bg-primary/30 blur-3xl animate-blob" />
+        <div className="container-tight relative">
+          <p className="reveal text-sm font-semibold uppercase tracking-[0.25em] text-primary-glow">Error 404</p>
+          <h1 className="reveal mt-4 font-display text-4xl md:text-6xl font-bold tracking-tight max-w-3xl" data-delay="80">
+            Page <span className="text-gradient">not found.</span>
+          </h1>
+        </div>
+      </section>
+      <div className="min-h-[50vh] w-full flex flex-col items-center justify-center bg-background p-4 sm:p-8">
         <div className="max-w-2xl w-full flex flex-col items-center text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
           {/* Animated Icon */}
           <div className="relative flex items-center justify-center w-24 h-24 rounded-full bg-primary/10">
@@ -38,6 +47,6 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }
