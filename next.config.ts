@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Lets the local test runner build into its own folder while `next dev` keeps using .next.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   experimental: {
     serverComponentsHmrCache: true,
     optimizePackageImports: ["lucide-react"],

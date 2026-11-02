@@ -43,4 +43,5 @@ next-env.d.ts
 
 # local end-to-end test output
 local-test.log
+/.next-localtest/
 local-test-report.json

@@ -4,7 +4,8 @@
  *
  * 1. npm install, typecheck, unit tests            (stops here on failure: nothing touches the database)
  * 2. db:status → db:migrate → agent:seed            (against DATABASE_URL in .env.local)
- * 3. starts `next dev` on PORT (default 3100), checks pages, SEO, redirects, admin protection
+ * 3. production build into .next-localtest (so it can run beside your own `next dev`), then
+ *    `next start` on PORT (default 3100): checks pages, SEO, redirects, admin protection
  * 4. OAuth + MCP smoke test over HTTP, then removes the test client
  * Writes everything to local-test.log and a summary to local-test-report.json. Never prints secrets.
  */
@@ -122,11 +123,19 @@ async function main() {
     if (!(await run(name, cmd))) return finish();
   }
 
-  out(`\n===== Start dev server on ${BASE} =====`);
-  const dev = spawn(`npx next dev -p ${PORT}`, {
+  const portBusy = await fetch(`${BASE}/`).then(() => true, () => false);
+  if (portBusy) {
+    check(`Port ${PORT} is free`, false, `something is already listening on ${BASE}; stop it or set PORT=`);
+    return finish();
+  }
+  const appEnv = { NEXT_DIST_DIR: ".next-localtest", NEXT_TELEMETRY_DISABLED: "1", OAUTH_ISSUER: BASE };
+  if (!(await run("Production build (into .next-localtest; also prerenders /blog from the database)", "npx next build", { env: appEnv }))) return finish();
+
+  out(`\n===== Start production server on ${BASE} =====`);
+  const dev = spawn(`npx next start -p ${PORT}`, {
     shell: true,
     detached: !isWin,
-    env: { ...process.env, FORCE_COLOR: "0", OAUTH_ISSUER: BASE, NEXT_TELEMETRY_DISABLED: "1" },
+    env: { ...process.env, FORCE_COLOR: "0", ...appEnv },
   });
   dev.stdout.on("data", (d) => log.write(d));
   dev.stderr.on("data", (d) => log.write(d));
@@ -136,7 +145,7 @@ async function main() {
       await sleep(2000);
       up = await fetch(`${BASE}/api/oauth/well-known/authorization-server`).then((r) => r.ok, () => false);
     }
-    check("Dev server started", up);
+    check("Server started", up);
     if (up) {
       out("\n===== Page, SEO and security checks =====");
       await httpChecks().catch((e) => check("Page checks crashed", false, String(e)));
