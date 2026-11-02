@@ -1,42 +1,23 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { constructMetadata } from "@/lib/seo";
+import { listPublishedPosts } from "@/lib/blog/queries";
+import { blogIndexJsonLd, blogIndexMetadata, serializeJsonLd } from "@/lib/blog/seo";
 
-export const metadata = constructMetadata({
-  title: "Blog | Johnnybits Technology",
-  description: "Practical articles from our designers, developers and marketers — tips, guides and ideas for growing online in Nigeria.",
-});
+// ISR safety net; publishing and admin edits revalidate /blog on demand (src/lib/blog/revalidate.ts).
+export const revalidate = 3600;
 
-import { query } from "@/lib/db";
-import Image from "next/image";
-
-interface BlogPost {
-  slug: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  created_at: Date;
-  tag: string;
-  featured_image: string | null;
-}
+export const metadata = blogIndexMetadata();
 
 export default async function BlogPage() {
-  const posts = await query<BlogPost>("SELECT * FROM blog_posts WHERE published = true ORDER BY created_at DESC");
+  const posts = await listPublishedPosts();
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Blog",
-            "name": "Johnnybits Technology Blog",
-            "description": "Practical articles from our designers, developers and marketers — tips, guides and ideas for growing online in Nigeria.",
-            "url": "https://johnnybits.com/blog"
-          })
-        }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(blogIndexJsonLd()) }}
       />
 
       <section className="surface-dark relative overflow-hidden -mt-16 md:-mt-20 pt-32 pb-20">
@@ -56,12 +37,11 @@ export default async function BlogPage() {
       <section className="py-20">
         <div className="container-tight grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((p, i) => {
-            const wordCount = (p.content || '').split(/\\s+/).length;
-            const readTime = Math.max(1, Math.ceil(wordCount / 200)) + " min";
-            const dateStr = new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-            
+            const readTime = `${p.readingMinutes} min`;
+            const dateStr = p.publishedAt.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
             // Fallback image if null
-            const imageSrc = p.featured_image || "/assets/portfolio/Travels Insider.webp";
+            const imageSrc = p.featuredImage || "/assets/portfolio/Travels Insider.webp";
 
             return (
               <article
@@ -72,7 +52,7 @@ export default async function BlogPage() {
                 <div className="relative aspect-[16/10] overflow-hidden bg-muted border-b border-border/50">
                   <Image
                     src={imageSrc}
-                    alt={p.title}
+                    alt={p.featuredImageAlt || p.title}
                     width={600}
                     height={400}
                     className="absolute inset-0 h-full w-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
@@ -80,7 +60,7 @@ export default async function BlogPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="absolute top-3 left-3 right-3 flex flex-wrap gap-1.5 z-10">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-gradient-brand text-white shadow-md border border-white/20">
-                      {p.tag}
+                      {p.category}
                     </span>
                   </div>
                 </div>
@@ -91,7 +71,7 @@ export default async function BlogPage() {
                       {p.title}
                     </Link>
                   </h2>
-                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-3">{p.excerpt}</p>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed flex-1 line-clamp-3">{p.summary}</p>
                   <div className="mt-6 pt-5 border-t border-border/50 flex items-center justify-between text-xs font-medium text-muted-foreground">
                     <div className="flex items-center gap-4">
                       <span className="inline-flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> {dateStr}</span>

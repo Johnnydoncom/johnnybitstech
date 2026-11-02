@@ -6,11 +6,11 @@ import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Post = {
-  id: number;
+  id: string;
   title: string;
   slug: string;
   tag: string | null;
-  published: number;
+  published: boolean;
   created_at: string;
 };
 
@@ -31,10 +31,15 @@ export default function BlogAdminPage() {
 
   useEffect(() => { fetchPosts(); }, []);
 
-  const deletePost = async (id: number) => {
+  const deletePost = async (id: string) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
     try {
-      await fetch(`/api/admin/blog/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/blog/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        alert(body.error ?? "Failed to delete post");
+        return;
+      }
       setPosts((p) => p.filter((post) => post.id !== id));
     } catch (e) {
       console.error(e);

@@ -1,54 +1,102 @@
-import { verifySession } from "@/lib/auth";
-import { query, execute } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { verifySession } from "@/lib/auth";
+import { getDb } from "@/db/client";
+import { articles } from "@/db/schema";
+import {
+  articleIdParam,
+  articleToLegacyPost,
+  isUniqueViolation,
+  legacyInputToArticle,
+  legacyPostInput,
+} from "@/lib/blog/admin";
+import { revalidateBlog } from "@/lib/blog/revalidate";
+import { isSameOrigin } from "@/lib/security/same-origin";
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+type Params = { params: Promise<{ id: string }> };
+
+/** The legacy Quill editor only handles HTML articles in draft/published state; agent drafts are managed in /admin/blog-agent. */
+const EDITABLE_STATUSES = new Set(["draft", "published"]);
+
+async function loadArticle(rawId: string) {
+  const id = articleIdParam.safeParse(rawId);
+  if (!id.success) return null;
+  const [row] = await getDb().select().from(articles).where(eq(articles.id, id.data)).limit(1);
+  return row ?? null;
+}
+
+export async function GET(_req: Request, { params }: Params) {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
-
   try {
-    const posts = await query("SELECT * FROM blog_posts WHERE id = ?", [id]);
-    if (!posts.length) return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    return NextResponse.json(posts[0]);
+    const article = await loadArticle((await params).id);
+    if (!article) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    return NextResponse.json(articleToLegacyPost(article));
   } catch (error) {
     console.error("Blog fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch post" }, { status: 500 });
   }
 }
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, { params }: Params) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
+  const parsed = legacyPostInput.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  }
 
   try {
-    const body = await req.json();
-    const { title, slug, excerpt, content, tag, published, featured_image, meta_title, meta_description } = body;
+    const existing = await loadArticle((await params).id);
+    if (!existing) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    if (existing.contentFormat !== "html" || !EDITABLE_STATUSES.has(existing.status)) {
+      return NextResponse.json(
+        { error: "This article is managed by the Blog Agent. Edit it in Admin → Blog Agent." },
+        { status: 409 },
+      );
+    }
 
-    await execute(
-      `UPDATE blog_posts SET title=?, slug=?, excerpt=?, content=?, tag=?, published=?, featured_image=?, meta_title=?, meta_description=?, updated_at=NOW()
-       WHERE id=?`,
-      [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, featured_image || null, meta_title || null, meta_description || null, id]
-    );
+    const publish = parsed.data.published;
+    await getDb()
+      .update(articles)
+      .set({
+        ...legacyInputToArticle(parsed.data),
+        status: publish ? "published" : "draft",
+        publishedAt: publish ? (existing.publishedAt ?? new Date()) : existing.publishedAt,
+      })
+      .where(eq(articles.id, existing.id));
 
+    if (publish || existing.status === "published") revalidateBlog([existing.slug, parsed.data.slug]);
     return NextResponse.json({ message: "Post updated" });
   } catch (error) {
+    if (isUniqueViolation(error)) {
+      return NextResponse.json({ error: "A post with this slug already exists" }, { status: 409 });
+    }
     console.error("Blog update error:", error);
     return NextResponse.json({ error: "Failed to update post" }, { status: 500 });
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: Params) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
-
   try {
-    await execute("DELETE FROM blog_posts WHERE id = ?", [id]);
+    const existing = await loadArticle((await params).id);
+    if (!existing) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    if (existing.contentFormat !== "html" || !EDITABLE_STATUSES.has(existing.status)) {
+      return NextResponse.json(
+        { error: "This article is managed by the Blog Agent. Delete it in Admin → Blog Agent." },
+        { status: 409 },
+      );
+    }
+
+    await getDb().delete(articles).where(eq(articles.id, existing.id));
+    if (existing.status === "published") revalidateBlog([existing.slug]);
     return NextResponse.json({ message: "Post deleted" });
   } catch (error) {
     console.error("Blog delete error:", error);

@@ -9,6 +9,7 @@ import { SITE_URL } from "@/config/site";
 export const metadata = constructMetadata({
   title: "Graphics Design | Johnnybits Technology",
   description: "Brand identities, flyers, banners and social creatives that pop. Logo design, social media creatives, print & packaging, pitch decks.",
+  canonicalUrl: "/graphics-design",
 });
 
 const PAGE_URL = `${SITE_URL}/graphics-design`;

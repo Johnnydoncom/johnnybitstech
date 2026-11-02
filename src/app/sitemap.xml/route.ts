@@ -1,5 +1,5 @@
 import { SITE_URL } from "@/config/site";
-import { query } from "@/lib/db";
+import { listPublishedSlugs } from "@/lib/blog/queries";
 
 export const revalidate = 86400; // Cache for 24 hours
 
@@ -11,7 +11,7 @@ export async function GET() {
     { url: `${BASE_URL}/`, changeFrequency: "weekly", priority: "1.0" },
     { url: `${BASE_URL}/about-the-web-design-company`, changeFrequency: "monthly", priority: "0.8" },
     { url: `${BASE_URL}/services`, changeFrequency: "monthly", priority: "0.9" },
-    { url: `${BASE_URL}/corporate-web-design-company`, changeFrequency: "monthly", priority: "0.8" },
+    { url: `${BASE_URL}/corporate-web-design-nigeria`, changeFrequency: "monthly", priority: "0.8" },
     { url: `${BASE_URL}/web-development-services`, changeFrequency: "monthly", priority: "0.8" },
     { url: `${BASE_URL}/search-engine-optimization-seo`, changeFrequency: "monthly", priority: "0.8" },
     { url: `${BASE_URL}/ecommerce-web-development`, changeFrequency: "monthly", priority: "0.8" },
@@ -27,12 +27,10 @@ export async function GET() {
   // Dynamic blog posts from database
   let blogPages: Array<{ url: string; lastModified: string; changeFrequency: string; priority: string }> = [];
   try {
-    const posts = await query<{ slug: string; updated_at: Date }>(
-      "SELECT slug, updated_at FROM blog_posts WHERE published = 1 ORDER BY created_at DESC"
-    );
+    const posts = await listPublishedSlugs();
     blogPages = posts.map((post) => ({
       url: `${BASE_URL}/blog/${post.slug}`,
-      lastModified: new Date(post.updated_at).toISOString(),
+      lastModified: post.updatedAt.toISOString(),
       changeFrequency: "weekly",
       priority: "0.7",
     }));

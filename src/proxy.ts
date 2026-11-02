@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-
-const secretKey = process.env.SESSION_SECRET || "fallback-secret-change-me";
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getSessionKey } from "@/lib/session-key";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,8 +22,9 @@ export async function proxy(request: NextRequest) {
   }
 
   const session = request.cookies.get("session")?.value;
+  const encodedKey = getSessionKey();
 
-  if (!session) {
+  if (!session || !encodedKey) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 

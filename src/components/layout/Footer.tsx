@@ -40,7 +40,7 @@ export const Footer = () => {
             {SERVICES.slice(0, 6).map((s) => (
               <li key={s.slug}>
                 <Link
-                  href={`/services/${s.slug}`}
+                  href={`/${s.slug}`}
                   className="text-surface-dark-foreground/70 hover:text-primary-glow transition-smooth"
                 >
                   {s.title}
