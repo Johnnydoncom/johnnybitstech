@@ -77,13 +77,25 @@ async function httpChecks() {
   check("/blog renders", blog.res.status === 200, `status ${blog.res.status}`);
   check("/blog lists the published posts", slugs.length >= 10, `${slugs.length} posts`);
   check("/blog canonical + og:url are /blog", canonical(blog.text) === `${site}/blog` && ogUrl(blog.text) === `${site}/blog`, `${canonical(blog.text)} | ${ogUrl(blog.text)}`);
-  check("Read times are real (not all '1 min')", minutes.length > 0 && minutes.some((m) => m > 1), minutes.join(","));
+  check("/blog shows a read time on every card", minutes.length === slugs.length, minutes.join(","));
 
   if (slugs[0]) {
     const post = await get(`/blog/${slugs[0]}`);
     check("Post renders", post.res.status === 200, `/blog/${slugs[0]} → ${post.res.status}`);
     check("Post canonical + og:url are its own URL", canonical(post.text) === `${site}/blog/${slugs[0]}` && ogUrl(post.text) === `${site}/blog/${slugs[0]}`, canonical(post.text));
     check("Post shows Odoh John byline", post.text.includes("Odoh John"));
+    // Read time must match the article's real length (words / 225, rounded, minimum 1).
+    const body = post.text.split('class="blog-content"')[1]?.split('<div class="mt-16')[0] ?? "";
+    const words = body
+      .replace(/^[^>]*>/, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&[a-z#0-9]+;/gi, " ")
+      .split(/\s+/)
+      .filter((t) => /[\p{L}\p{N}]/u.test(t)).length;
+    const shown = Number(post.text.match(/(\d+)(?:<!-- -->)?\s?min read/)?.[1]);
+    const expected = Math.max(1, Math.round(words / 225));
+    check("Post read time matches its real length", words > 50 && Math.abs(shown - expected) <= 1, `${words} words → shows ${shown} min (expected ${expected})`);
+    check("Listing and post agree on read time", minutes[slugs.indexOf(slugs[0])] === shown, `listing ${minutes[0]} vs post ${shown}`);
     check("Post JSON-LD has BlogPosting + Person author", post.text.includes('"@type":"BlogPosting"') && post.text.includes('"@type":"Person"'));
     check("Post HTML has no <script> inside the article body", !/class="blog-content"[^>]*>(?:(?!<\/article>)[\s\S])*<script/i.test(post.text));
   }
