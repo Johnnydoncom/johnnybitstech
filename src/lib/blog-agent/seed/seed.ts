@@ -38,6 +38,12 @@ export async function seedLinkTargets(db: SqlExecutor, targets: LinkTargetSeed[]
   return { upserted: targets.length, deactivated: deactivated.map((r) => r.url) };
 }
 
+async function authorIdBySlug(db: SqlExecutor, slug: string): Promise<string> {
+  const [row] = await db.query<{ id: string }>("SELECT id FROM authors WHERE slug = $1", [slug]);
+  if (!row) throw new Error(`Default author "${slug}" not found; run seedAuthors first`);
+  return row.id;
+}
+
 type LegacyPost = {
   id: number;
   title: string;
@@ -58,16 +64,19 @@ export type BackfillReport = {
   inserted: string[];
   alreadyPresent: string[];
   slugConflicts: string[];
+  /** Legacy articles that had no author and were credited to the default author. */
+  authorAssigned: number;
 };
 
 /**
  * Copies legacy blog_posts into articles (HTML format, same slug, same dates).
  * Idempotent: rows already backfilled (by legacy_id) are left alone, so later edits are never overwritten.
  */
-export async function backfillLegacyPosts(db: SqlExecutor): Promise<BackfillReport> {
-  const report: BackfillReport = { found: 0, inserted: [], alreadyPresent: [], slugConflicts: [] };
+export async function backfillLegacyPosts(db: SqlExecutor, defaultAuthorSlug?: string): Promise<BackfillReport> {
+  const report: BackfillReport = { found: 0, inserted: [], alreadyPresent: [], slugConflicts: [], authorAssigned: 0 };
   const [{ exists }] = await db.query<{ exists: boolean }>(`SELECT to_regclass('public.blog_posts') IS NOT NULL AS exists`);
   if (!exists) return report;
+  const authorId = defaultAuthorSlug ? await authorIdBySlug(db, defaultAuthorSlug) : null;
 
   const hasFeaturedImage = (
     await db.query(`SELECT 1 FROM information_schema.columns WHERE table_name = 'blog_posts' AND column_name = 'featured_image'`)
@@ -98,20 +107,35 @@ export async function backfillLegacyPosts(db: SqlExecutor): Promise<BackfillRepo
       `INSERT INTO articles (
          legacy_id, title, slug, summary, content, content_format, content_hash, category, tags, status,
          meta_title, meta_description, featured_image, word_count, reading_minutes,
-         created_at, updated_at, published_at
+         created_at, updated_at, published_at, author_id
        ) VALUES (
          $1, $2, $3, $4, $5, 'html', $6, $7, $8::jsonb, $9::article_status,
-         $10, $11, $12, $13, $14, $15, $16, $17
+         $10, $11, $12, $13, $14, $15, $16, $17, $18
        )`,
       [
         p.id, p.title, p.slug, p.excerpt, content, contentHash(content), p.tag,
         JSON.stringify(p.tag ? [p.tag] : []),
         p.published ? "published" : "draft",
         p.meta_title, p.meta_description, p.featured_image, wordCount, readingMinutes,
-        p.created_at, p.updated_at, p.published ? p.created_at : null,
+        p.created_at, p.updated_at, p.published ? p.created_at : null, authorId,
       ],
     );
     report.inserted.push(p.slug);
+  }
+
+  if (authorId) {
+    // Credits rows backfilled before an author existed. Never overrides an author set later.
+    // updated_at is left alone: crediting an author is not a content change.
+    await db.exec("ALTER TABLE articles DISABLE TRIGGER articles_touch");
+    try {
+      const assigned = await db.query(
+        "UPDATE articles SET author_id = $1 WHERE legacy_id IS NOT NULL AND author_id IS NULL RETURNING id",
+        [authorId],
+      );
+      report.authorAssigned = assigned.length;
+    } finally {
+      await db.exec("ALTER TABLE articles ENABLE TRIGGER articles_touch");
+    }
   }
   return report;
 }

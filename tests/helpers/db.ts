@@ -34,9 +34,8 @@ export const LEGACY_DDL = `
 
 export type TestDb = { pg: PGlite; exec: SqlExecutor; db: Db; close(): Promise<void> };
 
-export async function createTestDb(options: { migrate?: boolean } = {}): Promise<TestDb> {
-  const pg = await PGlite.create({ extensions: { vector, pg_trgm } });
-  const exec: SqlExecutor = {
+function executor(pg: PGlite): SqlExecutor {
+  return {
     async exec(sql) {
       await pg.exec(sql);
     },
@@ -45,8 +44,32 @@ export async function createTestDb(options: { migrate?: boolean } = {}): Promise
       return result.rows;
     },
   };
+}
+
+/**
+ * Booting PGlite and running the migrations takes ~2s, so each test file builds one migrated template
+ * and every test gets a fresh clone of it (~0.2s).
+ */
+let migratedTemplate: Promise<PGlite> | undefined;
+
+async function bootTemplate(migrate: boolean): Promise<PGlite> {
+  const pg = await PGlite.create({ extensions: { vector, pg_trgm } });
+  const exec = executor(pg);
   await exec.exec(LEGACY_DDL);
-  if (options.migrate !== false) await migrateUp(exec);
+  if (migrate) await migrateUp(exec);
+  return pg;
+}
+
+export async function createTestDb(options: { migrate?: boolean } = {}): Promise<TestDb> {
+  const migrate = options.migrate !== false;
+  let pg: PGlite;
+  if (migrate) {
+    migratedTemplate ??= bootTemplate(true);
+    pg = (await (await migratedTemplate).clone()) as PGlite;
+  } else {
+    pg = await bootTemplate(false);
+  }
+  const exec = executor(pg);
   // PgliteDatabase is a PgDatabase; widen to the shared Db type like src/db/client.ts does.
   const db = drizzle({ client: pg, schema }) as unknown as Db;
   return { pg, exec, db, close: () => pg.close() };

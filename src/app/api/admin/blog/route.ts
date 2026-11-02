@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { verifySession } from "@/lib/auth";
 import { getDb } from "@/db/client";
-import { articles } from "@/db/schema";
+import { articles, authors } from "@/db/schema";
+import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
 import { articleToLegacyPost, isUniqueViolation, legacyInputToArticle, legacyPostInput } from "@/lib/blog/admin";
 import { revalidateBlog } from "@/lib/blog/revalidate";
 import { isSameOrigin } from "@/lib/security/same-origin";
@@ -33,12 +34,18 @@ export async function POST(request: Request) {
 
   try {
     const now = new Date();
+    const [author] = await getDb()
+      .select({ id: authors.id })
+      .from(authors)
+      .where(eq(authors.slug, getBrandContext().defaultAuthorSlug))
+      .limit(1);
     const [created] = await getDb()
       .insert(articles)
       .values({
         ...legacyInputToArticle(parsed.data),
         status: parsed.data.published ? "published" : "draft",
         publishedAt: parsed.data.published ? now : null,
+        authorId: author?.id ?? null,
       })
       .returning({ id: articles.id, slug: articles.slug });
 

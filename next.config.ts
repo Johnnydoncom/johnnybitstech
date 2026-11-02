@@ -14,6 +14,15 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+  async rewrites() {
+    return [
+      // OAuth discovery for the MCP connector (RFC 9728 / RFC 8414), served by route handlers.
+      { source: '/.well-known/oauth-protected-resource', destination: '/api/oauth/well-known/protected-resource' },
+      { source: '/.well-known/oauth-protected-resource/:path*', destination: '/api/oauth/well-known/protected-resource' },
+      { source: '/.well-known/oauth-authorization-server', destination: '/api/oauth/well-known/authorization-server' },
+      { source: '/.well-known/oauth-authorization-server/:path*', destination: '/api/oauth/well-known/authorization-server' },
+    ]
+  },
   async redirects() {
     return [
       {

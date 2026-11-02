@@ -43,6 +43,8 @@ export const brandContextSchema = z.object({
       sameAs: z.array(z.string().url()),
     }),
   ).min(1),
+  /** Author credited on articles that do not name one (legacy posts and the Quill editor). */
+  defaultAuthorSlug: z.string(),
   /** Claims the writer may state as fact about Johnnybits. Empty until the owner verifies them. */
   approvedClaims: z.array(z.object({ claim: z.string(), evidence: z.string() })),
   /** Figures and phrases that must never appear in agent output (unverified or contradictory). */
@@ -52,3 +54,8 @@ export const brandContextSchema = z.object({
 });
 
 export type BrandContext = z.infer<typeof brandContextSchema>;
+
+export const brandContextChecked = brandContextSchema.refine(
+  (b) => b.authors.some((a) => a.slug === b.defaultAuthorSlug),
+  { message: "defaultAuthorSlug must match one of the authors", path: ["defaultAuthorSlug"] },
+);

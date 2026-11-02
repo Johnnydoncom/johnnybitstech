@@ -372,3 +372,20 @@ Still open:
   Rotate to 32+ (`openssl rand -base64 32`); the only effect is a re-login.
 - Legacy posts have no author (`author_id` null) and keep Organization as JSON-LD author; agent articles use Odoh John.
 - CSRF on the legacy admin API uses an Origin/Referer check with the existing SameSite=Lax cookie (OWASP "verify origin").
+
+## 14. Phase 2 deviations from this plan
+
+- MCP server uses `mcp-handler` 2.3 on the MCP SDK v2 (`@modelcontextprotocol/server` 2.4), the maintained line that
+  supports zod 4 and the 2026-07-28 protocol with a 2025-era fallback.
+- `claim_next_keyword` claims **and** creates the run in one statement (a claim can never exist without a run), and
+  resumes the calling connection's open run. `create_run` takes a keyword string for ad-hoc runs.
+- `save_stage_output` binds `s9_qa` to the content hash of the draft it reviewed (set server-side), supports
+  `validate_only`, and refuses `s3_brief` until `check_cannibalization` has run without a `block`.
+- Cannibalization also flags other in-flight runs and drafts awaiting review, not only published articles.
+- Draft citations are checked mechanically at save time: every `[^rN]` must be a saved research id, have a definition,
+  and that definition must link to the research item's exact `source_url`.
+- Consent screen lives in the admin (`/admin/connector/authorize/{id}`); the admin login now returns you to the page
+  you came from (`?next=`, admin paths only).
+- A minimal `/admin/blog-agent/connections` page (connector URL, connections with revoke, recent tool calls) ships now
+  because revocation must exist as soon as the connector does; the full agent admin is still Phase 4.
+- Existing posts are credited to Odoh John (byline + Person JSON-LD with LinkedIn `sameAs`); `updated_at` is preserved.

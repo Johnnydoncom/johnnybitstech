@@ -7,7 +7,12 @@ describe("brand context", () => {
 
   it("validates against its schema", () => {
     expect(brand.company.siteUrl).toBe("https://johnnybits.com");
-    expect(brand.authors[0]).toMatchObject({ name: "Odoh John", jobTitle: "Software Developer" });
+    expect(brand.authors[0]).toMatchObject({
+      name: "Odoh John",
+      jobTitle: "Software Developer",
+      sameAs: ["https://ng.linkedin.com/in/johnnybits"],
+    });
+    expect(brand.defaultAuthorSlug).toBe("odoh-john");
   });
 
   it("has no approved claims until the owner verifies them", () => {

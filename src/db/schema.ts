@@ -98,6 +98,7 @@ export const pipelineRuns = pgTable("pipeline_runs", {
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
+  cannibalization: jsonb("cannibalization"),
 });
 
 export const articles = pgTable("articles", {
@@ -189,6 +190,87 @@ export const auditLog = pgTable("audit_log", {
   details: jsonb("details"),
   ip: text("ip"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// --- OAuth / MCP (0002) -----------------------------------------------------
+
+export const oauthClients = pgTable("oauth_clients", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clientId: text("client_id").notNull().unique(),
+  kind: text("kind").$type<"cimd" | "dcr">().notNull(),
+  clientName: text("client_name").notNull(),
+  redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  metadataFetchedAt: timestamp("metadata_fetched_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+});
+
+export const oauthAuthRequests = pgTable("oauth_auth_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clientId: text("client_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  codeChallenge: text("code_challenge").notNull(),
+  scope: text("scope").notNull(),
+  state: text("state"),
+  resource: text("resource").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  decision: text("decision").$type<"approved" | "denied">(),
+  decidedBy: text("decided_by"),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthGrants = pgTable("oauth_grants", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  clientId: text("client_id").notNull(),
+  adminEmail: text("admin_email").notNull(),
+  scope: text("scope").notNull(),
+  resource: text("resource").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  revokedReason: text("revoked_reason"),
+});
+
+export const oauthCodes = pgTable("oauth_codes", {
+  codeHash: text("code_hash").primaryKey(),
+  grantId: uuid("grant_id").notNull(),
+  clientId: text("client_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  codeChallenge: text("code_challenge").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthTokens = pgTable("oauth_tokens", {
+  tokenHash: text("token_hash").primaryKey(),
+  kind: text("kind").$type<"access" | "refresh">().notNull(),
+  grantId: uuid("grant_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  rotatedAt: timestamp("rotated_at", { withTimezone: true }),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const mcpCallLog = pgTable("mcp_call_log", {
+  id: bigserial("id", { mode: "number" }).primaryKey(),
+  clientId: text("client_id"),
+  grantId: uuid("grant_id"),
+  tool: text("tool").notNull(),
+  runId: uuid("run_id"),
+  ok: boolean("ok").notNull(),
+  errorCode: text("error_code"),
+  durationMs: integer("duration_ms").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const rateLimits = pgTable("rate_limits", {
+  bucket: text("bucket").notNull(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  hits: integer("hits").notNull().default(0),
 });
 
 export type Article = typeof articles.$inferSelect;

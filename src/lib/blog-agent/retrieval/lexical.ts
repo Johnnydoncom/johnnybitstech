@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { rowsOf } from "@/db/rows";
 import type { Db } from "@/db/types";
 
 export type SiteSearchHit = {
@@ -12,11 +13,6 @@ export type SiteSearchHit = {
 };
 
 export type SiteSearchOptions = { limit?: number };
-
-function rowsOf<T>(result: unknown): T[] {
-  if (Array.isArray(result)) return result as T[];
-  return ((result as { rows?: T[] }).rows ?? []) as T[];
-}
 
 /**
  * Lexical search over published articles and active link targets.

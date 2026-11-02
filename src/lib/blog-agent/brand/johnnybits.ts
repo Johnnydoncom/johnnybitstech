@@ -1,6 +1,6 @@
 import { BRAND, PORTFOLIO, SERVICES } from "@/lib/brand";
 import { SITE_URL } from "@/config/site";
-import { brandContextSchema, type BrandContext } from "./schema";
+import { brandContextChecked, type BrandContext } from "./schema";
 
 /**
  * Brand context served to the agent by `get_brand_context`.
@@ -59,9 +59,10 @@ const brandContext: BrandContext = {
       name: "Odoh John",
       jobTitle: "Software Developer",
       url: `${SITE_URL}/about-the-web-design-company`,
-      sameAs: [],
+      sameAs: ["https://ng.linkedin.com/in/johnnybits"],
     },
   ],
+  defaultAuthorSlug: "odoh-john",
   approvedClaims: [],
   bannedClaims: [
     { pattern: "5+ years / 10+ years in business", reason: "Contradictory across pages; unverified" },
@@ -79,5 +80,5 @@ const brandContext: BrandContext = {
 };
 
 export function getBrandContext(): BrandContext {
-  return brandContextSchema.parse(brandContext);
+  return brandContextChecked.parse(brandContext);
 }

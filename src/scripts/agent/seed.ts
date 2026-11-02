@@ -20,10 +20,11 @@ async function main() {
     const targets = await seedLinkTargets(db, linkTargetSeeds());
     console.log(`Link targets upserted: ${targets.upserted}${targets.deactivated.length ? `; deactivated: ${targets.deactivated.join(", ")}` : ""}`);
 
-    const backfill = await backfillLegacyPosts(db);
+    const backfill = await backfillLegacyPosts(db, brand.defaultAuthorSlug);
     console.log(`Legacy posts found: ${backfill.found}`);
     console.log(`  inserted (${backfill.inserted.length}): ${backfill.inserted.join(", ") || "-"}`);
     console.log(`  already present (${backfill.alreadyPresent.length})`);
+    console.log(`  credited to ${brand.defaultAuthorSlug}: ${backfill.authorAssigned}`);
     if (backfill.slugConflicts.length) {
       console.warn(`  SLUG CONFLICTS, not copied (${backfill.slugConflicts.length}): ${backfill.slugConflicts.join(", ")}`);
       process.exitCode = 2;

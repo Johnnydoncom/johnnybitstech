@@ -23,10 +23,10 @@ async function columnsOf(t: TestDb, table: string) {
 }
 
 describe("migrations", () => {
-  it("applies 0001 and records it", async () => {
+  it("applies every migration and records it", async () => {
     t = await createTestDb();
     const status = await migrationStatus(t.exec);
-    expect(status.map((s) => [s.version, Boolean(s.appliedAt)])).toEqual([["0001", true]]);
+    expect(status.map((s) => [s.version, Boolean(s.appliedAt)])).toEqual([["0001", true], ["0002", true]]);
     expect(await migrateUp(t.exec)).toEqual([]); // idempotent
   });
 
@@ -50,11 +50,14 @@ describe("migrations", () => {
 
   it("rolls back cleanly and can be re-applied", async () => {
     t = await createTestDb();
-    expect(await migrateDown(t.exec)).toEqual(["0001"]);
+    expect(await migrateDown(t.exec)).toEqual(["0002"]);
+    expect(await columnsOf(t, "oauth_tokens")).toEqual(new Set());
+    expect(await columnsOf(t, "articles")).toContain("slug"); // 0001 still applied
+    expect(await migrateDown(t.exec, 5)).toEqual(["0001"]);
     for (const table of tables) expect((await columnsOf(t, getTableName(table))).size).toBe(0);
     expect(await columnsOf(t, "blog_posts")).toContain("slug"); // legacy table untouched
     expect(await columnsOf(t, "admin_users")).not.toContain("role");
-    expect(await migrateUp(t.exec)).toEqual(["0001"]);
+    expect(await migrateUp(t.exec)).toEqual(["0001", "0002"]);
   });
 
   it("enforces article invariants", async () => {

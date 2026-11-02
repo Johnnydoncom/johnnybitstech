@@ -63,7 +63,33 @@ describe("backfillLegacyPosts", () => {
 
   it("does nothing when there is no legacy table", async () => {
     await t.exec.exec("DROP TABLE blog_posts");
-    expect(await backfillLegacyPosts(t.exec)).toEqual({ found: 0, inserted: [], alreadyPresent: [], slugConflicts: [] });
+    expect(await backfillLegacyPosts(t.exec)).toEqual({ found: 0, inserted: [], alreadyPresent: [], slugConflicts: [], authorAssigned: 0 });
+  });
+
+  it("credits the default author on new and previously backfilled posts without touching updated_at", async () => {
+    await addLegacy("first-post");
+    await backfillLegacyPosts(t.exec); // backfilled before any author existed
+    await seedAuthors(t.exec, getBrandContext().authors);
+    await addLegacy("second-post");
+
+    const report = await backfillLegacyPosts(t.exec, "odoh-john");
+    expect(report).toMatchObject({ inserted: ["second-post"], authorAssigned: 1 });
+
+    const rows = await t.exec.query<{ slug: string; author: string; updated_at: string }>(
+      "SELECT a.slug, au.name AS author, a.updated_at FROM articles a JOIN authors au ON au.id = a.author_id ORDER BY a.slug",
+    );
+    expect(rows.map((r) => [r.slug, r.author])).toEqual([["first-post", "Odoh John"], ["second-post", "Odoh John"]]);
+    for (const r of rows) expect(new Date(r.updated_at).toISOString()).toBe("2026-03-12T09:00:00.000Z");
+
+    // Trigger is re-enabled afterwards: a real edit still bumps updated_at.
+    await t.exec.query("UPDATE articles SET title = 'Edited' WHERE slug = 'first-post'");
+    const [edited] = await t.exec.query<{ updated_at: string }>("SELECT updated_at FROM articles WHERE slug = 'first-post'");
+    expect(new Date(edited.updated_at).getTime()).toBeGreaterThan(Date.parse("2026-03-12T09:00:00Z"));
+  });
+
+  it("fails loudly if the default author has not been seeded", async () => {
+    await addLegacy("a-post");
+    await expect(backfillLegacyPosts(t.exec, "odoh-john")).rejects.toThrow(/Default author/);
   });
 });
 

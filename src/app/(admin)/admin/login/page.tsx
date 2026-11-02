@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { loginAction } from "./actions";
 import { Lock, Mail, ArrowRight } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [state, action, pending] = useActionState(loginAction, undefined);
+  const next = useSearchParams().get("next") ?? "";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(200,60%,6%)] via-[hsl(200,70%,10%)] to-[hsl(192,95%,28%)/0.3] p-4">
@@ -18,6 +20,7 @@ export default function AdminLoginPage() {
         </div>
 
         <form action={action} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-8 shadow-2xl">
+          <input type="hidden" name="next" value={next} />
           {state?.error && (
             <div className="mb-6 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
               {state.error}

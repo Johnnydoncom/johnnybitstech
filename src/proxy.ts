@@ -3,6 +3,13 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { getSessionKey } from "@/lib/session-key";
 
+function toLogin(request: NextRequest) {
+  const url = new URL("/admin/login", request.url);
+  const next = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  if (next !== "/admin") url.searchParams.set("next", next);
+  return NextResponse.redirect(url);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -25,14 +32,14 @@ export async function proxy(request: NextRequest) {
   const encodedKey = getSessionKey();
 
   if (!session || !encodedKey) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return toLogin(request);
   }
 
   try {
     await jwtVerify(session, encodedKey, { algorithms: ["HS256"] });
     return NextResponse.next();
   } catch {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return toLogin(request);
   }
 }
 
