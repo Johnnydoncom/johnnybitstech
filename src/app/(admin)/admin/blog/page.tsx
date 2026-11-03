@@ -11,25 +11,32 @@ type Post = {
   slug: string;
   tag: string | null;
   published: boolean;
+  status: string;
+  content_format: "html" | "markdown";
   created_at: string;
 };
+
+const STATUS_LABEL: Record<string, string> = { pending_review: "Awaiting review", rejected: "Rejected", archived: "Archived" };
 
 export default function BlogAdminPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPosts = async () => {
-    try {
-      const res = await fetch("/api/admin/blog");
-      if (res.ok) setPosts(await res.json());
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => {
+    // Load once on mount; the flag ignores a response that arrives after unmount.
+    let active = true;
+    fetch("/api/admin/blog")
+      .then(async (res) => {
+        if (active && res.ok) setPosts(await res.json());
+      })
+      .catch((e) => console.error(e))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const deletePost = async (id: string) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
@@ -90,18 +97,26 @@ export default function BlogAdminPage() {
                   </td>
                   <td className="px-5 py-4 hidden md:table-cell">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium ${post.published ? "text-green-600" : "text-muted-foreground"}`}>
-                      {post.published ? <><Eye className="h-3 w-3" /> Published</> : <><EyeOff className="h-3 w-3" /> Draft</>}
+                      {post.published ? <><Eye className="h-3 w-3" /> Published</> : <><EyeOff className="h-3 w-3" /> {STATUS_LABEL[post.status] ?? "Draft"}</>}
                     </span>
                   </td>
                   <td className="px-5 py-4 text-muted-foreground hidden lg:table-cell">{new Date(post.created_at).toLocaleDateString()}</td>
                   <td className="px-5 py-4 text-right">
                     <div className="inline-flex items-center gap-1">
-                      <Link href={`/admin/blog/${post.id}/edit`} className="rounded-lg p-2 hover:bg-muted transition-colors" title="Edit">
-                        <Pencil className="h-4 w-4" />
-                      </Link>
-                      <button onClick={() => deletePost(post.id)} className="rounded-lg p-2 hover:bg-destructive/10 text-destructive transition-colors" title="Delete">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {post.content_format === "markdown" ? (
+                        <Link href={`/admin/blog-agent/drafts/${post.id}`} className="rounded-lg p-2 hover:bg-muted transition-colors" title="Review in Blog Agent">
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      ) : (
+                        <>
+                          <Link href={`/admin/blog/${post.id}/edit`} className="rounded-lg p-2 hover:bg-muted transition-colors" title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                          <button onClick={() => deletePost(post.id)} className="rounded-lg p-2 hover:bg-destructive/10 text-destructive transition-colors" title="Delete">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

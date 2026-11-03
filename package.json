@@ -17,7 +17,8 @@
     "db:rollback": "tsx src/scripts/db/migrate.ts down",
     "agent:seed": "tsx src/scripts/agent/seed.ts",
     "test:local": "node src/scripts/local-test/run.mjs",
-    "agent:index-backfill": "tsx src/scripts/agent/index-backfill.ts"
+    "agent:index-backfill": "tsx src/scripts/agent/index-backfill.ts",
+    "agent:optimize-images": "tsx src/scripts/agent/optimize-blog-images.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -56,6 +57,7 @@
     "remark-rehype": "^11.1.2",
     "server-only": "^0.0.1",
     "shadcn": "^4.5.0",
+    "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",

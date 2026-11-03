@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/blog", label: "Blog", icon: FileText },
-  { href: "/admin/blog-agent/connections", label: "Blog Agent", icon: Bot },
+  { href: "/admin/blog-agent", label: "Blog Agent", icon: Bot },
   { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/clients", label: "Clients", icon: Users },
   { href: "/admin/profile", label: "Profile", icon: UserCog },

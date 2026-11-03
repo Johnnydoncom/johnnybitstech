@@ -1,15 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import { audit } from "@/lib/audit";
-import { verifySession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { revokeGrant } from "@/lib/oauth/flow";
 
 export async function revokeConnection(formData: FormData) {
-  const session = await verifySession();
-  if (!session) redirect("/admin/login");
+  const session = await requireAdmin();
   const grantId = String(formData.get("grant_id") ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(grantId)) return;
   const db = getDb();

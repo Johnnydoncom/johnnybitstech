@@ -4,6 +4,8 @@ import { rowsOf } from "@/db/rows";
 import { getOAuthConfig } from "@/lib/oauth/config";
 import { Button } from "@/components/ui/button";
 import { revokeConnection } from "./actions";
+import { requireAdmin } from "@/lib/blog-agent/admin/auth";
+import { AgentHeader } from "../_components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ const fmt = (d: string | Date | null) =>
   d ? new Date(d).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" }) : "—";
 
 export default async function ConnectionsPage() {
+  await requireAdmin();
   const db = getDb();
   const [grants, calls] = await Promise.all([
     db.execute(sql`
@@ -40,10 +43,7 @@ export default async function ConnectionsPage() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight">Blog Agent</h1>
-        <p className="mt-1 text-muted-foreground">Connections from Claude and recent agent activity.</p>
-      </div>
+      <AgentHeader title="Connections" description="Claude connections to the Blog Agent, and recent tool calls." active="/admin/blog-agent/connections" />
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h2 className="font-semibold">Connector URL</h2>

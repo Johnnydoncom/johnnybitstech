@@ -403,3 +403,14 @@ Still open:
 - `create_draft` re-checks for a published or pending article with the same primary keyword at the last moment.
 - Hybrid retrieval (reciprocal rank fusion of lexical + vector) and `agent:index-backfill` are built and tested with
   the offline fixture provider; they stay off until an embeddings key is configured.
+
+## 16. Phase 4 deviations and additions
+
+- Images (requested 2026-11-03): all blog images are WebP under 400 KB. Uploads are optimised server-side with sharp;
+  the 8 existing PNGs were converted (85–204 KB) with a script to repoint posts after deploy.
+- Admin mutations are Server Actions (built-in Origin/Host CSRF check) instead of route handlers plus a separate
+  double-submit token; every one checks the admin role and writes `audit_log`.
+- Publish re-runs the article validator on the edited text; length, link-count and section-count findings are warnings
+  because a human may edit deliberately. The FAQ structured data is re-extracted from the article on every save.
+- Published agent articles stay editable (slug locked); edits re-index and revalidate the live page.
+- The old `/admin/blog` list sends agent (Markdown) articles to the review page instead of the Quill editor.

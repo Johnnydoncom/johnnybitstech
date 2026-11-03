@@ -3,7 +3,7 @@ import { rowsOf } from "@/db/rows";
 import type { Db } from "@/db/types";
 import type { ContentFormat } from "@/db/schema";
 import type { EmbeddingsProvider } from "../embeddings/types";
-import { buildChunks } from "./chunks";
+import { buildChunks, type Chunk } from "./chunks";
 
 export type BackfillResult = { articlesIndexed: number; articlesUnchanged: number; linkTargetsEmbedded: number; costUsd: number };
 
@@ -32,42 +32,7 @@ export async function indexPublishedArticles(db: Db, provider: EmbeddingsProvide
       continue;
     }
 
-    let vectors: (number[] | null)[] = chunks.map(() => null);
-    if (provider) {
-      const embedded = await provider.embed(chunks.map((c) => c.body), "document");
-      if (embedded.vectors.length !== chunks.length || embedded.vectors.some((v) => v.length !== provider.dims)) {
-        throw new Error(`Embedding verification failed for article ${a.id}`);
-      }
-      vectors = embedded.vectors;
-      result.costUsd += embedded.costUsd;
-    }
-    const rows = chunks.map((c, i) => ({
-      ...c,
-      embedding: vectors[i] ? `[${vectors[i]!.join(",")}]` : null,
-      embedding_model: vectors[i] ? provider!.model : null,
-      embedding_dims: vectors[i] ? provider!.dims : null,
-    }));
-    // One statement: upsert the current units and delete units that no longer exist. (A DELETE + INSERT of the
-    // same keys in one statement would conflict: data-modifying CTEs share a snapshot.)
-    const json = JSON.stringify(rows);
-    await db.execute(sql`
-      WITH incoming AS (
-        SELECT * FROM jsonb_to_recordset(${json}::jsonb) AS c(
-          scope text, section_key text, heading text, body text, content_hash text, embedding text, embedding_model text, embedding_dims int
-        )
-      ), upserted AS (
-        INSERT INTO article_chunks (article_id, scope, section_key, heading, body, content_hash, searchable, embedding, embedding_model, embedding_dims)
-        SELECT ${a.id}::uuid, scope::chunk_scope, section_key, heading, body, content_hash, true, embedding::vector, embedding_model, embedding_dims
-        FROM incoming
-        ON CONFLICT (article_id, scope, section_key) DO UPDATE
-          SET heading = EXCLUDED.heading, body = EXCLUDED.body, content_hash = EXCLUDED.content_hash, searchable = true,
-              embedding = EXCLUDED.embedding, embedding_model = EXCLUDED.embedding_model, embedding_dims = EXCLUDED.embedding_dims
-        RETURNING 1
-      )
-      DELETE FROM article_chunks d
-      WHERE d.article_id = ${a.id}::uuid
-        AND NOT EXISTS (SELECT 1 FROM incoming i WHERE i.scope::chunk_scope = d.scope AND i.section_key = d.section_key)
-    `);
+    result.costUsd += await writeChunks(db, a.id, chunks, provider, true);
     result.articlesIndexed++;
   }
 
@@ -91,4 +56,47 @@ export async function indexPublishedArticles(db: Db, provider: EmbeddingsProvide
     }
   }
   return result;
+}
+
+/**
+ * Embeds (when a provider is given) and writes an article's index units in one statement: upserts the current
+ * units and deletes units that no longer exist. Returns the embedding cost in USD.
+ * (A DELETE + INSERT of the same keys in one statement would conflict: data-modifying CTEs share a snapshot.)
+ */
+export async function writeChunks(db: Db, articleId: string, chunks: Chunk[], provider: EmbeddingsProvider | null, searchable: boolean): Promise<number> {
+  let vectors: (number[] | null)[] = chunks.map(() => null);
+  let cost = 0;
+  if (provider && chunks.length) {
+    const embedded = await provider.embed(chunks.map((c) => c.body), "document");
+    if (embedded.vectors.length !== chunks.length || embedded.vectors.some((v) => v.length !== provider.dims || !v.every(Number.isFinite))) {
+      throw new Error(`Embedding verification failed for article ${articleId}`);
+    }
+    vectors = embedded.vectors;
+    cost = embedded.costUsd;
+  }
+  const rows = chunks.map((c, i) => ({
+    ...c,
+    embedding: vectors[i] ? `[${vectors[i]!.join(",")}]` : null,
+    embedding_model: vectors[i] ? provider!.model : null,
+    embedding_dims: vectors[i] ? provider!.dims : null,
+  }));
+  await db.execute(sql`
+    WITH incoming AS (
+      SELECT * FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS c(
+        scope text, section_key text, heading text, body text, content_hash text, embedding text, embedding_model text, embedding_dims int
+      )
+    ), upserted AS (
+      INSERT INTO article_chunks (article_id, scope, section_key, heading, body, content_hash, searchable, embedding, embedding_model, embedding_dims)
+      SELECT ${articleId}::uuid, scope::chunk_scope, section_key, heading, body, content_hash, ${searchable}, embedding::vector, embedding_model, embedding_dims
+      FROM incoming
+      ON CONFLICT (article_id, scope, section_key) DO UPDATE
+        SET heading = EXCLUDED.heading, body = EXCLUDED.body, content_hash = EXCLUDED.content_hash, searchable = EXCLUDED.searchable,
+            embedding = EXCLUDED.embedding, embedding_model = EXCLUDED.embedding_model, embedding_dims = EXCLUDED.embedding_dims
+      RETURNING 1
+    )
+    DELETE FROM article_chunks d
+    WHERE d.article_id = ${articleId}::uuid
+      AND NOT EXISTS (SELECT 1 FROM incoming i WHERE i.scope::chunk_scope = d.scope AND i.section_key = d.section_key)
+  `);
+  return cost;
 }

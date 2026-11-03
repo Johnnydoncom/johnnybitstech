@@ -9,8 +9,8 @@ Design and decisions: [`blog-agent-plan.md`](./blog-agent-plan.md). This file is
 | 0 | Recon and plan | Done |
 | 1 | Blog SEO fixes, `articles` model, migrations, backfill, link targets, retrieval, brand context, tests | Done |
 | 2 | OAuth + `/api/mcp` + run/queue/stage tools | Done (tested locally against production 2026-11-02) |
-| 3 | Linking, SEO package, validators, indexing, `create_draft` | **Done, awaiting review** |
-| 4 | `/admin/blog-agent` + publish flow | Not started |
+| 3 | Linking, SEO package, validators, indexing, `create_draft` | Done |
+| 4 | `/admin/blog-agent` + publish flow | **Done, awaiting review** |
 | 5 | Hardening, docs | Not started |
 | 6 | Cowork skills + scheduled task | Not started |
 
@@ -25,6 +25,7 @@ Design and decisions: [`blog-agent-plan.md`](./blog-agent-plan.md). This file is
 | `npm run db:rollback [-- N]` | Reverts the latest (or latest N) migrations using the `.down.sql` files |
 | `npm run agent:seed` | Upserts authors + link targets, copies legacy `blog_posts` into `articles`. Safe to re-run |
 | `npm run agent:index-backfill` | Index entries for published posts (+ embeddings when a provider is set). Safe to re-run |
+| `npm run agent:optimize-images` | Converts `public/assets/blog` PNG/JPEG to WebP < 400 KB; `-- --update-db` repoints posts (after deploy) |
 | `npm run test:local` | End-to-end test on your machine against `.env.local`'s database (or double-click `test-local.cmd`) |
 
 Scripts read `.env.local` (then `.env`). Migrations use `DATABASE_URL_UNPOOLED` when set, otherwise `DATABASE_URL`.
@@ -128,6 +129,38 @@ OAuth flow (Inspector registers itself via DCR with a localhost redirect, which 
 
 **Rolling out Phase 2:** `npm install` → `npm run db:migrate` (applies `0002`) → deploy. Vercel preview deployments
 behind Vercel Authentication cannot be reached by Claude; test previews with the Inspector instead.
+
+## Admin: review and publish (Phase 4)
+
+`/admin/blog-agent` (admin role required; every action is a Server Action, which Next.js protects with an
+Origin/Host check, and is written to `audit_log`):
+
+| Page | What you can do |
+|---|---|
+| Overview | Counts: drafts awaiting review, runs needing a human, runs in progress, queue, connections |
+| Keyword queue | Add keywords in bulk (priority 0–100), change priority, skip, re-queue failed/skipped, delete |
+| Runs | Every run; the detail page shows each saved stage version (JSON), why a run stopped, the overlap check, tool calls; abandon a run, re-queue its keyword |
+| Drafts → review | Edit title, slug (locked once published), SEO fields and the Markdown; change or remove internal links (only to published pages); upload the featured image; live preview with the real blog styles; QA report and sources |
+| Connections | Connector URL, revoke connections, recent tool calls |
+
+**Publish** is blocked until the featured image and its alt text are set and the article passes the validator again on
+its current text (figures cited, no `[[NEEDS_SOURCE]]`, no banned claims, links real, FAQ data in sync, …).
+Word count, link count and section count only warn, since you may edit deliberately. Publishing rebuilds the index
+from the current text, then in one statement sets `published`, `published_at`, the article's own canonical, and
+makes the index searchable; `/blog`, the post and the sitemap are revalidated. Saving the FAQ section re-extracts
+the FAQ structured data, so it never drifts from the page. **Reject** needs a reason and can re-queue the keyword;
+only rejected articles can be deleted.
+
+**Images:** every upload is converted to WebP under 400 KB (auto-rotated, metadata stripped, resized to at most
+1600 px only if needed). Originals up to 4 MB (Vercel's request limit is 4.5 MB), at least 600 × 315 px.
+Stored in Vercel Blob: create a Blob store (Vercel → Storage → Blob → connect to the project), which adds
+`BLOB_READ_WRITE_TOKEN`; copy it into `.env.local` for local use.
+
+**Existing post images:** `public/assets/blog/*.webp` (85–204 KB) replace the 700–970 KB PNGs. Roll out in this order:
+deploy (so the .webp files exist), then `npm run agent:optimize-images -- --update-db` (repoints featured images and
+inline images; `updated_at` is preserved). Delete the PNGs in a later commit.
+
+**Rolling out Phase 4:** `npm install` → deploy → create the Blob store. No new migration.
 
 ## Content model notes
 

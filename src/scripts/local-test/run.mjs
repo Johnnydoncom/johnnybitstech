@@ -177,6 +177,7 @@ async function main() {
       out("\n===== Page, SEO and security checks =====");
       await httpChecks().catch((e) => check("Page checks crashed", false, String(e)));
       await run("OAuth + MCP smoke test (cleans up after itself)", "npx tsx src/scripts/local-test/oauth-mcp-smoke.ts", { env: { BASE_URL: BASE }, allowFail: true });
+      await run("Admin pages smoke test (read-only)", "npx tsx src/scripts/local-test/admin-smoke.ts", { env: { BASE_URL: BASE }, allowFail: true });
     }
   } finally {
     killTree(dev);

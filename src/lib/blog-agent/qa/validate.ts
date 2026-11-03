@@ -4,6 +4,7 @@ import { linkCountRange, isInternalUrl } from "../linking/insert";
 import { bodyText, headings, parseMarkdown, textOf, walk, type MdNode } from "../markdown";
 import type { s4ResearchSchema, s7SeoSchema } from "../schemas/stages";
 import { keywordDensity, LIMITS, sentences } from "../seo/metrics";
+import { extractFaq } from "./faq";
 import type { SeoPackage } from "../seo/package";
 import type { z } from "zod";
 
@@ -143,17 +144,7 @@ export function validateArticle(input: ValidationInput): ValidationReport {
   if (faqStart < 0) {
     errors.push({ path: "markdown", message: "Missing an H2 FAQ section" });
   } else {
-    const visible = new Map<string, string>();
-    let question: string | null = null;
-    for (const node of (tree.children ?? []).slice(faqStart + 1)) {
-      if (node.type === "heading" && node.depth === 2) break;
-      if (node.type === "heading" && node.depth === 3) {
-        question = norm(textOf(node));
-        visible.set(question, "");
-      } else if (question && node.type !== "footnoteDefinition") {
-        visible.set(question, norm(`${visible.get(question)} ${textOf(node)}`));
-      }
-    }
+    const visible = new Map(extractFaq(input.markdown).map((f) => [f.question, f.answer]));
     input.seo.faq.forEach((f, i) => {
       const answer = visible.get(norm(f.question));
       if (answer === undefined) errors.push({ path: `faq.${i}.question`, message: `FAQ question "${f.question}" is not an H3 in the article's FAQ section` });

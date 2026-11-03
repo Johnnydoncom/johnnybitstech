@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   experimental: {
     serverComponentsHmrCache: true,
     optimizePackageImports: ["lucide-react"],
+    // Featured-image uploads from the blog admin (originals up to 4 MB; stored as WebP < 400 KB).
+    serverActions: { bodySizeLimit: "4mb" },
   },
   images: {
     // Featured images uploaded from the blog admin are stored in Vercel Blob.
