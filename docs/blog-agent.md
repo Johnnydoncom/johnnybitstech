@@ -152,6 +152,16 @@ makes the index searchable; `/blog`, the post and the sitemap are revalidated. S
 the FAQ structured data, so it never drifts from the page. **Reject** needs a reason and can re-queue the keyword;
 only rejected articles can be deleted.
 
+**Generating the featured image (optional, free):** the agent writes an image prompt (S7). On the review page,
+**Generate image** sends it (editable first) to Cloudflare Workers AI's FLUX.1 [schnell] model, centre-crops the
+1024 × 1024 result to 1024 × 538 (the 1.91:1 social-card shape) and saves it like an upload. Text, logos and
+watermarks are excluded in the prompt automatically. Cost: free within Cloudflare's 10,000 Neurons a day (about 60
+per image); `IMAGE_GEN_DAILY_LIMIT` (20) caps clicks so the allowance is never exhausted. Gemini's API has no free
+tier for image models, so it is not used; you can still make an image free in the Gemini app and upload it.
+Setup: Cloudflare dashboard → Workers AI → **Use REST API** → copy the Account ID and create an API token
+(Workers AI permission) → set `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AI_TOKEN` in Vercel → redeploy. Without
+them the page offers upload only. Always check a generated image suits the article and that the alt text describes it.
+
 **Images:** every upload is converted to WebP under 400 KB (auto-rotated, metadata stripped, resized to at most
 1600 px only if needed). Originals up to 4 MB (Vercel's request limit is 4.5 MB), at least 600 × 315 px.
 Stored in Vercel Blob: create a Blob store (Vercel → Storage → Blob → connect to the project), which adds
@@ -258,6 +268,8 @@ Environment Variables.
 | `NEXT_PUBLIC_SITE_URL` | Yes | `https://johnnybits.com` in production (canonicals, sitemap, OAuth issuer default) |
 | `BLOB_READ_WRITE_TOKEN` | For image uploads | Added by connecting a Vercel Blob store |
 | `CRON_SECRET` | Yes (Phase 5) | Authenticates the daily maintenance cron |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_TOKEN` | No | Free featured-image generation (Workers AI); empty = upload only |
+| `IMAGE_GEN_DAILY_LIMIT` | No | Generated images per 24 h (20) |
 | `OAUTH_ISSUER` | No | Overrides the OAuth issuer (local testing: `http://localhost:3000`) |
 | `OAUTH_ALLOWED_CLIENT_HOSTS` | No | CIMD hosts, default `claude.ai,claude.com` |
 | `MCP_STATIC_TOKEN` | No | Fixed bearer token for header-auth connectors; empty = OAuth only |

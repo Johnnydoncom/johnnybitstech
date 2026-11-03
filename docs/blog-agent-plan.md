@@ -445,3 +445,12 @@ Still open:
   `validate_article` before QA, and no files or questions in unattended sessions. The planned `dry_run` flag was
   dropped: in lexical mode the agent makes no paid calls, and the first three on-demand runs are reviewed by a human
   before any schedule is set.
+
+## 19. Featured-image generation (added 2026-11-03)
+
+- Asked for a free generator such as Gemini, or manual upload. Gemini API image models have no free tier
+  (paid from about $0.034 per 1K image), so the review page uses Cloudflare Workers AI's free daily allocation with
+  FLUX.1 [schnell] (documented JSON API). Manual upload remains. Both paths share one WebP < 400 KB pipeline and
+  Blob storage; the replaced Blob is deleted.
+- Generation is admin-only (a human still approves the image), audited (`article.image_generate`), capped per day,
+  and optional: no credentials, no button.

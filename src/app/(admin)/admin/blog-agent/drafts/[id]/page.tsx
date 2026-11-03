@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { getArticle, listInternalLinks, prePublishCheck } from "@/lib/blog-agent/admin/drafts";
+import { imageGenConfig } from "@/lib/blog-agent/image-gen";
 import { renderArticleHtml } from "@/lib/blog/render";
-import { deleteArticleAction, editLinkAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction } from "../../actions";
+import { deleteArticleAction, editLinkAction, generateImageAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction } from "../../actions";
 import { ConfirmButton } from "../../_components/ConfirmButton";
+import { PendingButton } from "../../_components/PendingButton";
 import { AgentHeader, Card, Notice, StatusBadge, fmt } from "../../_components/ui";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +35,13 @@ export default async function DraftReviewPage({ params, searchParams }: { params
   const qa = (a.qa_report ?? {}) as QaReport;
   const citations = (a.citations ?? []) as { id: string; publisher?: string; url: string; date?: string }[];
   const editable = a.status === "pending_review" || a.status === "rejected" || a.status === "published";
+  let canGenerate = false;
+  let imageGenProblem: string | null = null;
+  try {
+    canGenerate = imageGenConfig() !== null;
+  } catch (error) {
+    imageGenProblem = error instanceof Error ? error.message : "Image generation is misconfigured";
+  }
   const metrics = check.metrics as { word_count?: number; reading_minutes?: number; flesch_reading_ease?: number; internal_links?: number; citations?: number };
 
   return (
@@ -185,15 +194,27 @@ export default async function DraftReviewPage({ params, searchParams }: { params
             ) : (
               <p className="text-sm text-muted-foreground">No image yet.</p>
             )}
+            {editable && imageGenProblem && <p className="mt-3 text-xs text-destructive">{imageGenProblem}</p>}
+            {editable && canGenerate && (
+              <form action={generateImageAction} className="mt-3 space-y-2">
+                <input type="hidden" name="id" value={a.id} />
+                <Label htmlFor="prompt">Generate with AI (free, Cloudflare Workers AI)</Label>
+                <Textarea id="prompt" name="prompt" rows={4} minLength={10} maxLength={1500} required defaultValue={a.image_prompt ?? ""} placeholder="Describe the image: subject, style, colours. Text and logos are excluded automatically." />
+                <PendingButton size="sm" pendingLabel="Generating… (up to a minute)" confirmMessage={a.featured_image ? "Replace the current featured image with a generated one?" : undefined}>
+                  {a.featured_image ? "Generate a new image" : "Generate image"}
+                </PendingButton>
+              </form>
+            )}
             {editable && (
               <form action={uploadImageAction} className="mt-3 space-y-2">
                 <input type="hidden" name="id" value={a.id} />
+                {canGenerate && <Label>Or upload your own</Label>}
                 <Input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif" required aria-label="Featured image" />
                 <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or AVIF up to 4 MB, at least 600 × 315 (1200 × 630 is ideal). Saved as WebP under 400 KB.</p>
-                <Button type="submit" size="sm" variant="outline">Upload</Button>
+                <PendingButton size="sm" variant="outline" pendingLabel="Uploading…">Upload</PendingButton>
               </form>
             )}
-            {a.image_prompt && (
+            {a.image_prompt && !(editable && canGenerate) && (
               <details className="mt-3 text-sm"><summary className="cursor-pointer text-muted-foreground">Image prompt from the agent</summary><p className="mt-2">{a.image_prompt}</p></details>
             )}
           </Card>

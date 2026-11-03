@@ -3,7 +3,7 @@ import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
 import { createFixtureProvider } from "@/lib/blog-agent/embeddings/fixture";
 import {
   AdminError, deleteRejected, editInternalLink, getArticle, listInternalLinks, prePublishCheck, publishArticle,
-  rejectArticle, restoreToReview, setFeaturedImage, unpublishArticle, updateDraft, type DraftEdit,
+  rejectArticle, restoreToReview, setFeaturedImage, setImagePrompt, unpublishArticle, updateDraft, type DraftEdit,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, listQueue, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun, getRunDetail, listDrafts, overviewCounts } from "@/lib/blog-agent/admin/runs";
@@ -61,6 +61,14 @@ describe("review and publish", () => {
     expect(idx.s).toBe(idx.n);
     expect((await searchSiteContent(t.db, "website cost in Nigeria")).map((h) => h.url)).toContain(`/blog/${slug}`);
     expect((await adminError(publishArticle(t.db, articleId))).message).toMatch(/while the article is published/);
+  });
+
+  it("saves an edited image prompt for regeneration, within limits", async () => {
+    const { articleId } = await createDraftViaTools(t);
+    expect((await getArticle(t.db, articleId))!.image_prompt).toBe(fx.s7.image_prompt);
+    await setImagePrompt(t.db, articleId, "  A calm office desk   with a laptop, teal accents  ");
+    expect((await getArticle(t.db, articleId))!.image_prompt).toBe("A calm office desk with a laptop, teal accents");
+    expect((await adminError(setImagePrompt(t.db, articleId, "short"))).message).toMatch(/10–1,500/);
   });
 
   it("unpublishes: off the site and out of search, URL and publish date kept, linking posts reported", async () => {

@@ -8,13 +8,15 @@ import { getDb } from "@/db/client";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import {
-  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, unpublishArticle, updateDraft,
+  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, setImagePrompt, unpublishArticle, updateDraft,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun } from "@/lib/blog-agent/admin/runs";
 import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
 import { parseAgentEnv } from "@/lib/blog-agent/env";
-import { ImageError, optimizeImage } from "@/lib/blog-agent/images";
+import { generateFeaturedImage, imageGenConfig } from "@/lib/blog-agent/image-gen";
+import { ImageError, optimizeImage, type OptimizedImage } from "@/lib/blog-agent/images";
+import { rateLimit } from "@/lib/rate-limit";
 import { revalidateBlog } from "@/lib/blog/revalidate";
 
 const BASE = "/admin/blog-agent";
@@ -133,21 +135,50 @@ export async function saveDraftAction(fd: FormData) {
   });
 }
 
+function requireBlobStorage() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new AdminError("Image storage is not set up: add BLOB_READ_WRITE_TOKEN (Vercel → Storage → Blob)");
+}
+
+/** Stores an optimised image in Vercel Blob as the article's featured image and removes the one it replaces. */
+async function storeFeaturedImage(article: { id: string; slug: string; status: string; featured_image: string | null }, image: OptimizedImage) {
+  const blob = await put(`blog/${article.slug}.webp`, image.data, { access: "public", contentType: "image/webp", addRandomSuffix: true });
+  await setFeaturedImage(getDb(), article.id, blob.url);
+  if (article.featured_image?.includes(".public.blob.vercel-storage.com/")) await del(article.featured_image).catch(() => undefined);
+  if (article.status === "published") revalidateBlog([article.slug]);
+}
+
 export async function uploadImageAction(fd: FormData) {
   const a = id(fd);
   await attempt(draftPage(a), "article.image", async (admin) => {
     const file = fd.get("image");
     if (!(file instanceof File) || file.size === 0) throw new AdminError("Choose an image file");
-    if (!process.env.BLOB_READ_WRITE_TOKEN) throw new AdminError("Image storage is not set up: add BLOB_READ_WRITE_TOKEN (Vercel → Storage → Blob)");
+    requireBlobStorage();
     const article = await getArticle(getDb(), a);
     if (!article) throw new AdminError("Article not found");
     const image = await optimizeImage(new Uint8Array(await file.arrayBuffer()));
-    const blob = await put(`blog/${article.slug}.webp`, image.data, { access: "public", contentType: "image/webp", addRandomSuffix: true });
-    await setFeaturedImage(getDb(), a, blob.url);
-    if (article.featured_image?.includes(".public.blob.vercel-storage.com/")) await del(article.featured_image).catch(() => undefined);
-    if (article.status === "published") revalidateBlog([article.slug]);
+    await storeFeaturedImage(article, image);
     await log(admin, "article.image", "article", a, { bytes: image.bytes, width: image.width, height: image.height, original: image.originalBytes });
     return `Image saved as WebP: ${(image.bytes / 1024).toFixed(0)} KB (was ${(image.originalBytes / 1024).toFixed(0)} KB), ${image.width}×${image.height}`;
+  });
+}
+
+export async function generateImageAction(fd: FormData) {
+  const a = id(fd);
+  await attempt(draftPage(a), "article.image_generate", async (admin) => {
+    const config = imageGenConfig();
+    if (!config) throw new AdminError("Image generation is not set up: add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AI_TOKEN");
+    requireBlobStorage();
+    const article = await getArticle(getDb(), a);
+    if (!article) throw new AdminError("Article not found");
+    const prompt = field(fd, "prompt").trim() || article.image_prompt || "";
+    if (prompt !== article.image_prompt) await setImagePrompt(getDb(), a, prompt);
+    // Protects the free Cloudflare allowance from repeated clicks (shared across admins, per 24 h window).
+    const quota = await rateLimit(getDb(), "image-gen", config.dailyLimit, 86_400);
+    if (!quota.allowed) throw new AdminError(`The limit of ${config.dailyLimit} generated images per day is reached; upload an image instead or try again tomorrow`);
+    const image = await generateFeaturedImage(prompt, config);
+    await storeFeaturedImage(article, image);
+    await log(admin, "article.image_generate", "article", a, { model: image.model, bytes: image.bytes, width: image.width, height: image.height });
+    return `Image generated and saved as WebP: ${(image.bytes / 1024).toFixed(0)} KB, ${image.width}×${image.height}. Check it suits the article and the alt text still describes it.`;
   });
 }
 

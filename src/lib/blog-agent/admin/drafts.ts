@@ -134,6 +134,14 @@ export async function setFeaturedImage(db: Db, id: string, url: string) {
   await db.execute(sql`UPDATE articles SET featured_image = ${url} WHERE id = ${id}`);
 }
 
+/** Saves an edited image prompt (used when the admin regenerates the featured image). */
+export async function setImagePrompt(db: Db, id: string, prompt: string) {
+  await requireAgentArticle(db, id, ["pending_review", "rejected", "published"]);
+  const text = prompt.trim().replace(/\s+/g, " ");
+  if (text.length < 10 || text.length > 1500) throw new AdminError("The image prompt must be 10–1,500 characters");
+  await db.execute(sql`UPDATE articles SET image_prompt = ${text} WHERE id = ${id}`);
+}
+
 // ---------------------------------------------------------------------------
 // Pre-publish check and publishing
 // ---------------------------------------------------------------------------
