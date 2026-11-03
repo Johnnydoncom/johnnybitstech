@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
-import { getArticle, listInternalLinks, prePublishCheck } from "@/lib/blog-agent/admin/drafts";
+import { getArticle, listContentImages, listInternalLinks, prePublishCheck, sectionHeadings } from "@/lib/blog-agent/admin/drafts";
 import { imageGenConfig } from "@/lib/blog-agent/image-gen";
 import { ImageError } from "@/lib/blog-agent/images";
 import { PROVIDER_INFO, searchStockPhotos, stockPhotoConfig, type StockPhoto } from "@/lib/blog-agent/stock-photos";
 import { renderArticleHtml } from "@/lib/blog/render";
-import { deleteArticleAction, editLinkAction, generateImageAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction, chooseStockPhotoAction } from "../../actions";
+import {
+  chooseStockPhotoAction, deleteArticleAction, editLinkAction, generateImageAction, generateSectionImageAction, publishAction, rejectAction,
+  removeSectionImageAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction, uploadSectionImageAction,
+} from "../../actions";
 import { ConfirmButton } from "../../_components/ConfirmButton";
 import { PendingButton } from "../../_components/PendingButton";
 import { AgentHeader, Card, Notice, StatusBadge, fmt } from "../../_components/ui";
@@ -25,7 +28,7 @@ type QaReport = {
   seo_warnings?: { message: string }[];
 };
 
-export default async function DraftReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string; stock?: string }> }) {
+export default async function DraftReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string; stock?: string; stock_target?: string; stock_alt?: string }> }) {
   await requireAdmin();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const db = getDb();
@@ -48,6 +51,11 @@ export default async function DraftReviewPage({ params, searchParams }: { params
   // reaches the browser.
   const stockConfig = editable ? stockPhotoConfig() : null;
   const stockQuery = (sp.stock ?? "").trim().slice(0, 100);
+  const sections = sectionHeadings(a.content);
+  const contentImages = listContentImages(a.content);
+  // "featured", or the H2 heading a stock photo should be inserted under.
+  const stockTarget = sp.stock_target && sections.includes(sp.stock_target) ? sp.stock_target : "featured";
+  const stockAlt = (sp.stock_alt ?? "").trim().slice(0, 125);
   let stockPhotos: StockPhoto[] = [];
   let stockError: string | null = null;
   if (stockConfig && stockQuery) {
@@ -196,9 +204,26 @@ export default async function DraftReviewPage({ params, searchParams }: { params
             {a.status === "rejected" && (
               <div className="mt-6 flex gap-2">
                 <form action={restoreAction}><input type="hidden" name="id" value={a.id} /><Button type="submit" variant="outline" size="sm">Back to review</Button></form>
-                <form action={deleteArticleAction}><input type="hidden" name="id" value={a.id} /><ConfirmButton variant="destructive" size="sm" message="Delete this rejected article permanently?">Delete</ConfirmButton></form>
               </div>
             )}
+            <form action={deleteArticleAction} className="mt-6 border-t border-border pt-4">
+              <input type="hidden" name="id" value={a.id} />
+              <ConfirmButton
+                variant="destructive"
+                size="sm"
+                className="w-full"
+                message={
+                  a.status === "published"
+                    ? `This article is live at /blog/${a.slug}. Deleting it removes the page for visitors and Google (they will get "not found") and cannot be undone. Delete it?`
+                    : "Delete this article permanently? This cannot be undone."
+                }
+              >
+                Delete article
+              </ConfirmButton>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {a.status === "published" ? "To take it offline but keep it, use Unpublish instead." : "Its run history is kept; re-queue the keyword to write it again."}
+              </p>
+            </form>
           </Card>
 
           {/* Image */}
@@ -229,6 +254,15 @@ export default async function DraftReviewPage({ params, searchParams }: { params
                     <Input id="stock" name="stock" defaultValue={stockQuery || (a.primary_keyword ?? "")} minLength={2} maxLength={100} required placeholder="e.g. small business owner laptop" />
                     <Button type="submit" size="sm" variant="outline">Search</Button>
                   </div>
+                  {sections.length > 0 && (
+                    <div className="grid gap-2">
+                      <select name="stock_target" defaultValue={stockTarget} aria-label="Use the photo for" className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                        <option value="featured">Use for: featured image</option>
+                        {sections.map((h) => <option key={h} value={h}>Insert under: {h}</option>)}
+                      </select>
+                      <Input name="stock_alt" defaultValue={stockAlt} maxLength={125} placeholder="Alt text (needed when inserting into a section)" />
+                    </div>
+                  )}
                 </form>
                 {stockError && <p className="mt-2 text-xs text-destructive">{stockError}</p>}
                 {stockPhotos.length > 0 && (
@@ -237,10 +271,17 @@ export default async function DraftReviewPage({ params, searchParams }: { params
                       <form key={photo.id} action={chooseStockPhotoAction} className="space-y-1">
                         <input type="hidden" name="id" value={a.id} />
                         <input type="hidden" name="photo_id" value={photo.id} />
+                        {stockTarget !== "featured" && (
+                          <>
+                            <input type="hidden" name="target" value="section" />
+                            <input type="hidden" name="heading" value={stockTarget} />
+                            <input type="hidden" name="alt" value={stockAlt || photo.alt} />
+                          </>
+                        )}
                         {/* eslint-disable-next-line @next/next/no-img-element -- stock-photo thumbnail */}
                         <img src={photo.thumbUrl} alt={photo.alt || "Stock photo"} loading="lazy" className="aspect-[1200/627] w-full rounded-md border border-border object-cover" />
-                        <PendingButton size="sm" variant="outline" className="w-full" pendingLabel="Saving…" confirmMessage={a.featured_image ? "Replace the current featured image with this photo?" : undefined}>
-                          Use this photo
+                        <PendingButton size="sm" variant="outline" className="w-full" pendingLabel="Saving…" confirmMessage={stockTarget === "featured" && a.featured_image ? "Replace the current featured image with this photo?" : undefined}>
+                          {stockTarget === "featured" ? "Use this photo" : "Insert in section"}
                         </PendingButton>
                         <p className="truncate text-[11px] text-muted-foreground">
                           Photo by <a href={photo.photographerUrl} target="_blank" rel="noopener noreferrer" className="underline">{photo.photographer}</a> on{" "}
@@ -268,6 +309,56 @@ export default async function DraftReviewPage({ params, searchParams }: { params
               <details className="mt-3 text-sm"><summary className="cursor-pointer text-muted-foreground">Image prompt from the agent</summary><p className="mt-2">{a.image_prompt}</p></details>
             )}
           </Card>
+
+          {/* Images inside the article */}
+          {editable && (
+            <Card id="article-images">
+              <h2 className="font-semibold mb-1">Images in the article</h2>
+              <p className="text-xs text-muted-foreground mb-3">Placed under a section heading, before its first paragraph. Saved as WebP under 400 KB.</p>
+              {contentImages.length > 0 ? (
+                <ul className="mb-4 space-y-2">
+                  {contentImages.map((img) => (
+                    <li key={img.url} className="flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- admin thumbnail */}
+                      <img src={img.url} alt={img.alt} className="h-12 w-20 shrink-0 rounded border border-border object-cover" />
+                      <span className="min-w-0 flex-1 truncate text-xs">{img.alt || "No alt text"}</span>
+                      <form action={removeSectionImageAction}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <input type="hidden" name="url" value={img.url} />
+                        <ConfirmButton size="sm" variant="outline" message="Remove this image from the article?">Remove</ConfirmButton>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mb-4 text-sm text-muted-foreground">No images inside the article yet.</p>
+              )}
+              {sections.length > 0 ? (
+                <form className="space-y-2">
+                  <input type="hidden" name="id" value={a.id} />
+                  <Label htmlFor="heading">Section</Label>
+                  <select id="heading" name="heading" required className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+                    {sections.map((h) => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                  <Label htmlFor="section-alt">Alt text</Label>
+                  <Input id="section-alt" name="alt" maxLength={125} required placeholder="What the image shows (5–125 characters)" />
+                  {canGenerate && (
+                    <>
+                      <Label htmlFor="section-prompt">Generate a realistic photo</Label>
+                      <Textarea id="section-prompt" name="prompt" rows={3} maxLength={1500} placeholder="Subject, setting, lighting, angle — e.g. a cashier taking a card payment at a Lagos supermarket, natural light" />
+                      <PendingButton size="sm" formAction={generateSectionImageAction} pendingLabel="Generating… (up to a minute)">Generate &amp; insert</PendingButton>
+                    </>
+                  )}
+                  <Label htmlFor="section-file">{canGenerate ? "Or upload a photo" : "Upload a photo"}</Label>
+                  <Input id="section-file" type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif" />
+                  <PendingButton size="sm" variant="outline" formAction={uploadSectionImageAction} pendingLabel="Uploading…">Upload &amp; insert</PendingButton>
+                  {stockConfig && <p className="text-xs text-muted-foreground">For a real stock photo, use the search above and choose “Insert under: …”.</p>}
+                </form>
+              ) : (
+                <p className="text-sm text-muted-foreground">Add H2 sections to the article to place images.</p>
+              )}
+            </Card>
+          )}
 
           {/* QA */}
           {qa.qa && (

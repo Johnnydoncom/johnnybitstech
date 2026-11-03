@@ -1,9 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, Clock, Tag, User } from "lucide-react";
 import type { Metadata } from "next";
 import { getPublishedPost, listPublishedSlugs } from "@/lib/blog/queries";
-import { renderArticleHtml } from "@/lib/blog/render";
+import { contentShowsImage, renderArticleHtml } from "@/lib/blog/render";
 import { articleJsonLd, postMetadata, serializeJsonLd } from "@/lib/blog/seo";
 
 // ISR safety net; publishing and admin edits revalidate the post on demand (src/lib/blog/revalidate.ts).
@@ -30,6 +31,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const readTime = post.readingMinutes;
   const dateStr = post.publishedAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   const html = renderArticleHtml(post.content, post.contentFormat);
+  // Older posts embed their image in the content; show the featured image only where the content does not already.
+  const showFeatured = Boolean(post.featuredImage) && !contentShowsImage(html, post.featuredImage!);
 
   return (
     <>
@@ -71,6 +74,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       {/* Content */}
       <article className="container-tight max-w-4xl pb-20 mt-10">
+        {showFeatured && (
+          <Image
+            src={post.featuredImage!}
+            alt={post.featuredImageAlt || post.title}
+            width={1200}
+            height={630}
+            priority
+            sizes="(max-width: 896px) 100vw, 896px"
+            className="w-full max-h-[450px] rounded-2xl object-cover shadow-card mb-8"
+          />
+        )}
         <div
           className="blog-content"
           dangerouslySetInnerHTML={{ __html: html }}

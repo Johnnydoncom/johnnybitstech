@@ -8,7 +8,8 @@ import { getDb } from "@/db/client";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import {
-  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, setFeaturedImageAlt, setImagePrompt, unpublishArticle, updateDraft,
+  AdminError, deleteArticle, editInternalLink, getArticle, insertSectionImage, publishArticle, rejectArticle, removeContentImage, restoreToReview,
+  setFeaturedImage, setFeaturedImageAlt, setImagePrompt, unpublishArticle, updateDraft,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun, resumeRun } from "@/lib/blog-agent/admin/runs";
@@ -32,7 +33,7 @@ const id = (fd: FormData, name = "id") => {
 function withMessage(path: string, kind: "ok" | "error", message: string) {
   const url = new URL(path, "https://admin.local");
   url.searchParams.set(kind, message.slice(0, 1500));
-  return `${url.pathname}${url.search}`;
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 /** Runs an admin mutation: expected errors become a message on the page; anything else is a real error. */
@@ -136,8 +137,13 @@ export async function chooseStockPhotoAction(fd: FormData) {
     const article = await getArticle(getDb(), a);
     if (!article) throw new AdminError("Article not found");
     const photoId = Number(field(fd, "photo_id"));
+    const toSection = field(fd, "target") === "section";
+    if (toSection) requireSectionFields(fd);
     const { data, photo } = await downloadStockPhoto(photoId, config);
     const image = await optimizeImage(await cropToFeatured(data));
+    if (toSection) {
+      return addToSection(admin, a, fd, image, photo.provider, { photo_id: photo.id, photo_url: photo.pageUrl, photographer: photo.photographer });
+    }
     await storeFeaturedImage(article, image);
     const alt = altFromStockPhoto(photo);
     const library = PROVIDER_INFO[photo.provider].name;
@@ -272,10 +278,78 @@ export async function restoreAction(fd: FormData) {
 export async function deleteArticleAction(fd: FormData) {
   const a = id(fd);
   await attempt(`${BASE}/drafts`, "article.delete", async (admin) => {
-    const article = await getArticle(getDb(), a);
-    const { slug } = await deleteRejected(getDb(), a);
-    if (article?.featured_image?.includes(".public.blob.vercel-storage.com/")) await del(article.featured_image).catch(() => undefined);
-    await log(admin, "article.delete", "article", a, { slug });
-    return `Deleted “${slug}”`;
+    const { slug, wasPublished, linkedFrom, blobUrls } = await deleteArticle(getDb(), a);
+    if (blobUrls.length) await del(blobUrls).catch((error) => console.error("Blob clean-up failed", error));
+    if (wasPublished) revalidateBlog([slug]);
+    await log(admin, "article.delete", "article", a, { slug, wasPublished, linkedFrom, images: blobUrls.length });
+    const linkers = linkedFrom.length ? ` ${linkedFrom.length} published article(s) still link to it: ${linkedFrom.map((s) => `/blog/${s}`).join(", ")}` : "";
+    return wasPublished ? `Deleted “${slug}”; its page now returns “not found”.${linkers}` : `Deleted “${slug}”`;
+  });
+}
+
+// --- Images inside sections ----------------------------------------------------
+
+async function storeSectionImage(article: { slug: string }, image: OptimizedImage) {
+  const blob = await put(`blog/${article.slug}-section.webp`, image.data, { access: "public", contentType: "image/webp", addRandomSuffix: true });
+  return blob.url;
+}
+
+async function addToSection(admin: { email: string }, articleId: string, fd: FormData, image: OptimizedImage, source: string, extra: Record<string, unknown> = {}) {
+  const article = (await getArticle(getDb(), articleId))!;
+  const url = await storeSectionImage(article, image);
+  try {
+    const { status } = await insertSectionImage(getDb(), articleId, field(fd, "heading"), url, field(fd, "alt"), getEmbeddingsProvider(parseAgentEnv()));
+    if (status === "published") revalidateBlog([article.slug]);
+  } catch (error) {
+    await del(url).catch(() => undefined); // never leave an orphaned file behind
+    throw error;
+  }
+  await log(admin, "article.section_image", "article", articleId, { source, heading: field(fd, "heading"), bytes: image.bytes, ...extra });
+  return `Image added under “${field(fd, "heading")}” (WebP, ${Math.round(image.bytes / 1024)} KB, ${image.width}×${image.height})`;
+}
+
+function requireSectionFields(fd: FormData) {
+  if (!field(fd, "heading")) throw new AdminError("Choose the section the image goes in");
+  const alt = field(fd, "alt").trim();
+  if (alt.length < 5 || alt.length > 125) throw new AdminError("Describe the image in 5–125 characters (alt text)");
+}
+
+export async function generateSectionImageAction(fd: FormData) {
+  const a = id(fd);
+  await attempt(`${draftPage(a)}#article-images`, "article.section_image", async (admin) => {
+    const config = imageGenConfig();
+    if (!config) throw new AdminError("Image generation is not set up: add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AI_TOKEN");
+    requireBlobStorage();
+    requireSectionFields(fd);
+    const prompt = field(fd, "prompt").trim();
+    if (prompt.length < 10) throw new AdminError("Describe the photo to generate (at least 10 characters)");
+    const quota = await rateLimit(getDb(), "image-gen", config.dailyLimit, 86_400);
+    if (!quota.allowed) throw new AdminError(`The limit of ${config.dailyLimit} generated images per day is reached; upload an image instead or try again tomorrow`);
+    const image = await generateFeaturedImage(prompt, config);
+    return addToSection(admin, a, fd, image, "generated", { model: image.model });
+  });
+}
+
+export async function uploadSectionImageAction(fd: FormData) {
+  const a = id(fd);
+  await attempt(`${draftPage(a)}#article-images`, "article.section_image", async (admin) => {
+    requireBlobStorage();
+    requireSectionFields(fd);
+    const file = fd.get("image");
+    if (!(file instanceof File) || file.size === 0) throw new AdminError("Choose an image file to upload");
+    const image = await optimizeImage(new Uint8Array(await file.arrayBuffer()));
+    return addToSection(admin, a, fd, image, "upload");
+  });
+}
+
+export async function removeSectionImageAction(fd: FormData) {
+  const a = id(fd);
+  await attempt(`${draftPage(a)}#article-images`, "article.section_image_remove", async (admin) => {
+    const url = field(fd, "url");
+    const { slug, status, isBlob } = await removeContentImage(getDb(), a, url, getEmbeddingsProvider(parseAgentEnv()));
+    if (isBlob) await del(url).catch(() => undefined);
+    if (status === "published") revalidateBlog([slug]);
+    await log(admin, "article.section_image_remove", "article", a, { url });
+    return "Image removed from the article";
   });
 }

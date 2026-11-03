@@ -77,3 +77,24 @@ export function renderArticleHtml(content: string, format: ContentFormat): strin
   const pipeline = format === "html" ? htmlPipeline : markdownPipeline;
   return String(pipeline.processSync(content));
 }
+
+/** Decodes URL escapes leniently (a malformed escape is compared as written). */
+function decodeLoose(value: string): string {
+  try {
+    return decodeURI(value);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Whether rendered article HTML already contains an <img> showing `src` (older posts embed their featured image in
+ * the content), comparing decoded URLs so "/a b.webp" matches "/a%20b.webp" and HTML-escaped ampersands match.
+ */
+export function contentShowsImage(html: string, src: string): boolean {
+  const target = decodeLoose(src.trim());
+  for (const m of html.matchAll(/<img\b[^>]*?\ssrc="([^"]*)"/gi)) {
+    if (decodeLoose(m[1].replace(/&amp;/g, "&")) === target) return true;
+  }
+  return false;
+}

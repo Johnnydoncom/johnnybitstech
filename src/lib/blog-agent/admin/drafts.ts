@@ -257,15 +257,19 @@ export async function unpublishArticle(db: Db, id: string): Promise<{ slug: stri
     `),
   );
   if (!row) throw new AdminError("The article was changed by someone else; reload and try again");
+  return { slug: row.slug, linkedFrom: await publishedLinkersOf(db, id, a.slug) };
+}
+
+/** Slugs of other published articles whose content links to /blog/<slug>. */
+async function publishedLinkersOf(db: Db, id: string, slug: string): Promise<string[]> {
   // Slugs are [a-z0-9-] only, so they are safe inside the pattern.
-  const linkedFrom = rowsOf<{ slug: string }>(
+  return rowsOf<{ slug: string }>(
     await db.execute(sql`
       SELECT slug FROM articles
-      WHERE status = 'published' AND id <> ${id} AND content ~ ${`/blog/${a.slug}([)"'#?/[:space:]]|$)`}
+      WHERE status = 'published' AND id <> ${id} AND content ~ ${`/blog/${slug}([)"'#?/[:space:]]|$)`}
       ORDER BY slug
     `),
   ).map((r) => r.slug);
-  return { slug: row.slug, linkedFrom };
 }
 
 export async function rejectArticle(db: Db, id: string, reason: string, requeueKeyword: boolean) {
@@ -288,9 +292,72 @@ export async function restoreToReview(db: Db, id: string) {
 }
 
 /** Only rejected articles can be deleted. Index entries cascade; runs keep their history (article_id set null). */
-export async function deleteRejected(db: Db, id: string): Promise<{ slug: string }> {
-  await requireAgentArticle(db, id, ["rejected"]);
-  const [row] = rowsOf<{ slug: string }>(await db.execute(sql`DELETE FROM articles WHERE id = ${id} AND status = 'rejected' RETURNING slug`));
-  if (!row) throw new AdminError("Only rejected articles can be deleted");
-  return row;
+const BLOB_URL = /^https:\/\/[a-z0-9.-]+\.public\.blob\.vercel-storage\.com\//i;
+
+/** Image URLs in Markdown content, in order (for listing and clean-up). */
+export function listContentImages(markdown: string): { url: string; alt: string }[] {
+  const images: { url: string; alt: string }[] = [];
+  walk(parseMarkdown(markdown), (n) => {
+    if (n.type === "image" && n.url) images.push({ url: n.url, alt: (n as { alt?: string }).alt ?? "" });
+  });
+  return images;
+}
+
+/**
+ * Permanently deletes an agent article in any state. Index entries cascade; runs keep their history (article_id set
+ * null). Returns what the caller must clean up: whether the live page must be revalidated, the published articles
+ * that still link to it, and the Blob images it used (featured and in-content).
+ */
+export async function deleteArticle(db: Db, id: string): Promise<{ slug: string; wasPublished: boolean; linkedFrom: string[]; blobUrls: string[] }> {
+  const a = await requireAgentArticle(db, id, ["draft", "pending_review", "rejected", "published", "archived"]);
+  const linkedFrom = a.status === "published" ? await publishedLinkersOf(db, id, a.slug) : [];
+  const [row] = rowsOf<{ slug: string }>(await db.execute(sql`DELETE FROM articles WHERE id = ${id} RETURNING slug`));
+  if (!row) throw new AdminError("The article was already deleted");
+  const blobUrls = [a.featured_image ?? "", ...listContentImages(a.content).map((i) => i.url)].filter((u) => BLOB_URL.test(u));
+  return { slug: row.slug, wasPublished: a.status === "published", linkedFrom, blobUrls: [...new Set(blobUrls)] };
+}
+
+/** H2 section headings an image can be added under (the FAQ section excluded: its answers feed structured data). */
+export function sectionHeadings(markdown: string): string[] {
+  return (parseMarkdown(markdown).children ?? [])
+    .filter((n) => n.type === "heading" && n.depth === 2)
+    .map((n) => textOf(n).trim())
+    .filter((t) => t && !/faq|frequently asked/i.test(t));
+}
+
+const escapeAlt = (alt: string) => alt.replace(/\s+/g, " ").trim().replace(/[[\]\\]/g, "");
+
+/**
+ * Inserts an image directly under an H2 section heading (before its first paragraph). The image is plain Markdown,
+ * so it is sanitised and lazy-loaded like any other content; it is not a link, so link and citation checks ignore it.
+ */
+export async function insertSectionImage(db: Db, id: string, heading: string, url: string, alt: string, provider: EmbeddingsProvider | null = null) {
+  const a = await requireAgentArticle(db, id, ["pending_review", "rejected", "published"]);
+  if (!url.startsWith("/") && !BLOB_URL.test(url)) throw new AdminError("Images must be a site path or a Vercel Blob URL");
+  const text = escapeAlt(alt);
+  if (text.length < 5 || text.length > 125) throw new AdminError("Alt text must be 5–125 characters");
+  if (!sectionHeadings(a.content).includes(heading.trim())) throw new AdminError("Choose one of the article's sections");
+  const lines = a.content.split("\n");
+  const at = lines.findIndex((l) => {
+    const m = /^##\s+(.+?)\s*#*\s*$/.exec(l);
+    return m !== null && textOf(parseMarkdown(l)).trim() === heading.trim();
+  });
+  if (at < 0) throw new AdminError("Choose one of the article's sections");
+  lines.splice(at + 1, 0, "", `![${text}](${url})`);
+  await saveContent(db, id, a.title, lines.join("\n").replace(/\n{3,}/g, "\n\n"));
+  if (a.status === "published") await reindex(db, id, provider, true);
+  return { slug: a.slug, status: a.status };
+}
+
+/** Removes an in-content image by URL. Returns whether it was a Blob image (the caller deletes the file). */
+export async function removeContentImage(db: Db, id: string, url: string, provider: EmbeddingsProvider | null = null) {
+  const a = await requireAgentArticle(db, id, ["pending_review", "rejected", "published"]);
+  const escaped = url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`^!\\[[^\\]]*\\]\\(${escaped}\\)\\s*$`);
+  const lines = a.content.split("\n");
+  const kept = lines.filter((l) => !pattern.test(l));
+  if (kept.length === lines.length) throw new AdminError("That image is not in the article");
+  await saveContent(db, id, a.title, kept.join("\n").replace(/\n{3,}/g, "\n\n"));
+  if (a.status === "published") await reindex(db, id, provider, true);
+  return { slug: a.slug, status: a.status, isBlob: BLOB_URL.test(url) };
 }

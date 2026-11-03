@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
 import { createFixtureProvider } from "@/lib/blog-agent/embeddings/fixture";
 import {
-  AdminError, deleteRejected, editInternalLink, getArticle, listInternalLinks, prePublishCheck, publishArticle,
+  AdminError, deleteArticle, editInternalLink, getArticle, insertSectionImage, listContentImages, listInternalLinks, prePublishCheck, publishArticle,
+  removeContentImage, sectionHeadings,
   rejectArticle, restoreToReview, setFeaturedImage, setFeaturedImageAlt, setImagePrompt, unpublishArticle, updateDraft, type DraftEdit,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, listQueue, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
@@ -155,9 +156,8 @@ describe("review and publish", () => {
     expect(check.warnings.some((w) => /internal links; 3–3 required/.test(w.message))).toBe(true);
   });
 
-  it("rejects with a reason (optionally re-queuing the keyword), restores, and deletes only rejected articles", async () => {
+  it("rejects with a reason (optionally re-queuing the keyword), restores, and deletes rejected articles", async () => {
     const { articleId } = await createDraftViaTools(t);
-    await expect(deleteRejected(t.db, articleId)).rejects.toThrow(/while the article is pending review/);
     await expect(rejectArticle(t.db, articleId, "no", false)).rejects.toThrow(/reason/);
     await rejectArticle(t.db, articleId, "Too generic for our audience", true);
     expect((await getArticle(t.db, articleId))!).toMatchObject({ status: "rejected", rejection_reason: "Too generic for our audience" });
@@ -165,10 +165,53 @@ describe("review and publish", () => {
 
     await restoreToReview(t.db, articleId);
     await rejectArticle(t.db, articleId, "Still not right", false);
-    expect(await deleteRejected(t.db, articleId)).toEqual({ slug: "website-cost-in-nigeria" });
+    expect(await deleteArticle(t.db, articleId)).toEqual({ slug: "website-cost-in-nigeria", wasPublished: false, linkedFrom: [], blobUrls: [] });
     expect(await getArticle(t.db, articleId)).toBeNull();
     const [run] = await t.exec.query<{ article_id: string | null; status: string }>("SELECT article_id, status FROM pipeline_runs");
     expect(run).toEqual({ article_id: null, status: "draft_created" }); // history kept
+  });
+
+  it("deletes drafts and live articles, reporting the page to revalidate, linking posts and Blob images to clean up", async () => {
+    const draft = await createDraftViaTools(t);
+    expect(await deleteArticle(t.db, draft.articleId)).toMatchObject({ wasPublished: false });
+
+    await t.exec.query("DELETE FROM keyword_queue");
+    const { articleId, slug } = await createDraftViaTools(t);
+    const cover = "https://abc123.public.blob.vercel-storage.com/blog/cover-x1.webp";
+    const inline = "https://abc123.public.blob.vercel-storage.com/blog/inline-x1.webp";
+    await setFeaturedImage(t.db, articleId, cover);
+    await publishArticle(t.db, articleId);
+    await insertSectionImage(t.db, articleId, "Ongoing costs after launch", inline, "Server rack in a data centre");
+    await t.exec.query(`INSERT INTO articles (title, slug, content, content_format, status, published_at) VALUES ('Linker', 'linker', 'See [costs](/blog/${slug}).', 'markdown', 'published', now())`);
+
+    expect(await deleteArticle(t.db, articleId)).toEqual({ slug, wasPublished: true, linkedFrom: ["linker"], blobUrls: [cover, inline] });
+    expect(await getArticle(t.db, articleId)).toBeNull();
+    const [{ n }] = await t.exec.query<{ n: number }>("SELECT count(*)::int AS n FROM article_chunks WHERE article_id = $1", [articleId]);
+    expect(n).toBe(0);
+    expect((await adminError(deleteArticle(t.db, articleId))).message).toMatch(/not found/i);
+  });
+
+  it("adds and removes images inside sections, keeping the article valid", async () => {
+    const { articleId } = await createDraftViaTools(t);
+    const a = (await getArticle(t.db, articleId))!;
+    expect(sectionHeadings(a.content)).toEqual(["What drives website cost in Nigeria", "Typical price ranges by website type", "Ongoing costs after launch", "How to keep costs under control"]);
+
+    const url = "https://abc123.public.blob.vercel-storage.com/blog/website-cost-in-nigeria-section-x1.webp";
+    await insertSectionImage(t.db, articleId, "Ongoing costs after launch", url, "  Server [rack] in a data centre ");
+    const content = (await getArticle(t.db, articleId))!.content;
+    expect(content).toContain("## Ongoing costs after launch\n\n![Server rack in a data centre](" + url + ")\n\nHosting is billed");
+    expect(listContentImages(content)).toEqual([{ url, alt: "Server rack in a data centre" }]);
+    await setFeaturedImage(t.db, articleId, "/assets/blog/cover.png");
+    expect((await prePublishCheck(t.db, articleId)).blockers).toEqual([]);
+
+    expect((await adminError(insertSectionImage(t.db, articleId, "Frequently asked questions", url, "Alt text here"))).message).toMatch(/sections/);
+    expect((await adminError(insertSectionImage(t.db, articleId, "Ongoing costs after launch", "http://evil.example/x.png", "Alt text here"))).message).toMatch(/Blob URL/);
+    expect((await adminError(insertSectionImage(t.db, articleId, "Ongoing costs after launch", url, "abc"))).message).toMatch(/5–125/);
+
+    expect(await removeContentImage(t.db, articleId, url)).toMatchObject({ isBlob: true });
+    expect(listContentImages((await getArticle(t.db, articleId))!.content)).toEqual([]);
+    expect((await getArticle(t.db, articleId))!.content).toContain("## Ongoing costs after launch\n\nHosting is billed");
+    expect((await adminError(removeContentImage(t.db, articleId, url))).message).toMatch(/not in the article/);
   });
 
   it("embeds the index on publish when a provider is configured", async () => {

@@ -38,8 +38,12 @@ export default function BlogAdminPage() {
     };
   }, []);
 
-  const deletePost = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this post?")) return;
+  const deletePost = async (post: Post) => {
+    const message = post.published
+      ? `"${post.title}" is live. Deleting it removes its page for visitors and Google and cannot be undone. Delete it?`
+      : "Are you sure you want to delete this post?";
+    if (!confirm(message)) return;
+    const id = post.id;
     try {
       const res = await fetch(`/api/admin/blog/${id}`, { method: "DELETE" });
       if (!res.ok) {
@@ -108,15 +112,13 @@ export default function BlogAdminPage() {
                           <Pencil className="h-4 w-4" />
                         </Link>
                       ) : (
-                        <>
-                          <Link href={`/admin/blog/${post.id}/edit`} className="rounded-lg p-2 hover:bg-muted transition-colors" title="Edit">
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                          <button onClick={() => deletePost(post.id)} className="rounded-lg p-2 hover:bg-destructive/10 text-destructive transition-colors" title="Delete">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </>
+                        <Link href={`/admin/blog/${post.id}/edit`} className="rounded-lg p-2 hover:bg-muted transition-colors" title="Edit">
+                          <Pencil className="h-4 w-4" />
+                        </Link>
                       )}
+                      <button onClick={() => deletePost(post)} className="rounded-lg p-2 hover:bg-destructive/10 text-destructive transition-colors" title="Delete">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
