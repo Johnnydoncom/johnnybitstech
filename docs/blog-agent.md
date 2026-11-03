@@ -165,7 +165,8 @@ them the page offers upload only. Always check a generated image suits the artic
 **Images:** every upload is converted to WebP under 400 KB (auto-rotated, metadata stripped, resized to at most
 1600 px only if needed). Originals up to 4 MB (Vercel's request limit is 4.5 MB), at least 600 × 315 px.
 Stored in Vercel Blob: create a Blob store (Vercel → Storage → Blob → connect to the project), which adds
-`BLOB_READ_WRITE_TOKEN`; copy it into `.env.local` for local use.
+`BLOB_STORE_ID` (new stores authenticate with Vercel OIDC; older stores add `BLOB_READ_WRITE_TOKEN` instead). Either
+works. Redeploy after connecting. For local use, `vercel env pull` or a read-write token in `.env.local`.
 
 **Existing post images:** `public/assets/blog/*.webp` (85–204 KB) replace the 700–970 KB PNGs. Roll out in this order:
 deploy (so the .webp files exist), then `npm run agent:optimize-images -- --update-db` (repoints featured images and
@@ -217,7 +218,7 @@ for 30 days must be reconnected. The scheduled task (Phase 6) uses the same conn
 | `MCP_STATIC_TOKEN` (only if used) | New 32+ char value in Vercel and in the organisation's connector header → redeploy. Empty disables it | Old value stops working on deploy |
 | `CRON_SECRET` | New value in Vercel → redeploy | Vercel Cron picks it up automatically |
 | `DATABASE_URL` | Neon → Roles → Reset password → update Vercel (both URLs) and `.env.local` → redeploy | — |
-| `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → the Blob store → regenerate → redeploy | Existing image URLs keep working |
+| `BLOB_READ_WRITE_TOKEN` (older stores only) | Vercel → Storage → the Blob store → regenerate → redeploy. OIDC stores have no static token to rotate | Existing image URLs keep working |
 
 If a token or the admin password may have leaked: revoke all connections, rotate `SESSION_SECRET`, change the admin
 password, then read `audit_log` and `mcp_call_log` for the period (`/admin/blog-agent/runs` shows calls per run).
@@ -266,7 +267,7 @@ Environment Variables.
 | `DATABASE_URL_UNPOOLED` | Recommended | Direct connection for migrations |
 | `SESSION_SECRET` | Yes | Admin session signing; random, 32+ characters |
 | `NEXT_PUBLIC_SITE_URL` | Yes | `https://johnnybits.com` in production (canonicals, sitemap, OAuth issuer default) |
-| `BLOB_READ_WRITE_TOKEN` | For image uploads | Added by connecting a Vercel Blob store |
+| `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` | For image uploads | Added by connecting a Vercel Blob store to the project (new stores: `BLOB_STORE_ID` + automatic OIDC) |
 | `CRON_SECRET` | Yes (Phase 5) | Authenticates the daily maintenance cron |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_TOKEN` | No | Free featured-image generation (Workers AI); empty = upload only |
 | `IMAGE_GEN_DAILY_LIMIT` | No | Generated images per 24 h (20) |

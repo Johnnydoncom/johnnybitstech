@@ -16,6 +16,7 @@ import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
 import { parseAgentEnv } from "@/lib/blog-agent/env";
 import { generateFeaturedImage, imageGenConfig } from "@/lib/blog-agent/image-gen";
 import { ImageError, optimizeImage, type OptimizedImage } from "@/lib/blog-agent/images";
+import { BLOB_NOT_CONFIGURED, isBlobStorageConfigured } from "@/lib/blob-storage";
 import { rateLimit } from "@/lib/rate-limit";
 import { revalidateBlog } from "@/lib/blog/revalidate";
 
@@ -145,7 +146,7 @@ export async function saveDraftAction(fd: FormData) {
 }
 
 function requireBlobStorage() {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new AdminError("Image storage is not set up: add BLOB_READ_WRITE_TOKEN (Vercel → Storage → Blob)");
+  if (!isBlobStorageConfigured()) throw new AdminError(BLOB_NOT_CONFIGURED);
 }
 
 /** Stores an optimised image in Vercel Blob as the article's featured image and removes the one it replaces. */

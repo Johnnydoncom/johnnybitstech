@@ -1,6 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
+import { BLOB_NOT_CONFIGURED, isBlobStorageConfigured } from "@/lib/blob-storage";
 import { ImageError, MAX_UPLOAD_BYTES, optimizeImage } from "@/lib/blog-agent/images";
 import { isSameOrigin } from "@/lib/security/same-origin";
 
@@ -13,9 +14,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!(await verifySession())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json({ error: "Image storage is not set up: connect a Blob store in Vercel (Storage → Blob), then redeploy" }, { status: 503 });
-  }
+  if (!isBlobStorageConfigured()) return NextResponse.json({ error: BLOB_NOT_CONFIGURED }, { status: 503 });
 
   const form = await request.formData().catch(() => null);
   const file = form?.get("image");

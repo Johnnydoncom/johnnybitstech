@@ -39,6 +39,14 @@ describe("POST /api/admin/blog/image", () => {
     expect(options).toMatchObject({ access: "public", contentType: "image/webp", addRandomSuffix: true });
   });
 
+  it("works with an OIDC-connected store (BLOB_STORE_ID, no read-write token), the default for new stores", async () => {
+    vi.stubEnv("BLOB_READ_WRITE_TOKEN", "");
+    vi.stubEnv("BLOB_STORE_ID", "store_abc123");
+    const { status } = await upload(await jpeg(1200, 630), { slug: "oidc-store" });
+    expect(status).toBe(200);
+    expect(put.mock.calls[0][0]).toBe("blog/oidc-store.webp");
+  });
+
   it("falls back to a safe file name when the slug is missing or unsafe", async () => {
     await upload(await jpeg(1200, 630), { slug: "../../etc/passwd" });
     expect(put.mock.calls[0][0]).toBe("blog/post.webp");
@@ -50,7 +58,8 @@ describe("POST /api/admin/blog/image", () => {
     expect((await upload(await jpeg(1200, 630))).status).toBe(401);
     session = { email: "admin@johnnybits.com" };
     vi.stubEnv("BLOB_READ_WRITE_TOKEN", "");
-    expect((await upload(await jpeg(1200, 630))).json.error).toMatch(/Blob store/);
+    vi.stubEnv("BLOB_STORE_ID", "");
+    expect((await upload(await jpeg(1200, 630))).json.error).toMatch(/Connect Project/);
     vi.stubEnv("BLOB_READ_WRITE_TOKEN", "vercel_blob_rw_test");
     expect(await upload(new Blob(["not an image"], { type: "image/jpeg" }))).toEqual({ status: 400, json: { error: "That file is not a readable image" } });
     expect((await upload(await jpeg(300, 200))).json.error).toMatch(/too small/);
