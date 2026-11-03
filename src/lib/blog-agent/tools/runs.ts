@@ -7,6 +7,8 @@ import { checkStage, type CheckIssue } from "./stage-checks";
 import { defineTool, runAdminUrl, ToolError } from "./types";
 
 const runId = z.string().uuid();
+/** Largest stage output accepted (a long draft plus research is well under this). */
+export const MAX_STAGE_OUTPUT_BYTES = 300_000;
 const stageEnum = z.enum(AGENT_STAGES);
 const iso = (v: string | Date | null) => (v ? new Date(v).toISOString() : null);
 
@@ -87,6 +89,10 @@ export const saveStageOutput = defineTool({
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   async run(ctx, input) {
     const stage = input.stage as AgentStage;
+    const size = Buffer.byteLength(JSON.stringify(input.output));
+    if (size > MAX_STAGE_OUTPUT_BYTES) {
+      throw new ToolError("validation_failed", `${stage} output is ${Math.round(size / 1024)} KB; the limit is ${MAX_STAGE_OUTPUT_BYTES / 1000} KB`, "Trim it (for example shorter research quotes) and retry");
+    }
     const run = await loadRun(ctx.db, input.run_id);
     assertRunning(run);
     const saved = await latestStages(ctx.db, run.id);

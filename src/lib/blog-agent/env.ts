@@ -15,6 +15,8 @@ const envSchema = z
     EMBEDDINGS_USD_PER_MTOK: z.coerce.number().min(0).optional(),
     OPENAI_API_KEY: z.string().min(1).optional(),
     VOYAGE_API_KEY: z.string().min(1).optional(),
+    /** Hard ceiling on embedding spend per pipeline run; past it the run continues lexical-only. */
+    AGENT_MAX_EMBEDDING_USD_PER_RUN: z.coerce.number().min(0).default(0.5),
     AGENT_DRY_RUN: flag,
     AGENT_FAQ_SCHEMA: flag,
   })

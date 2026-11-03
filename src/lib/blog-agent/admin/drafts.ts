@@ -86,7 +86,9 @@ export async function updateDraft(db: Db, id: string, input: DraftEdit, provider
   const parsed = draftEditSchema.safeParse(input);
   if (!parsed.success) throw new AdminError("Please fix the highlighted fields", parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })));
   const d = parsed.data;
-  if (a.status === "published" && d.slug !== a.slug) throw new AdminError("The slug of a published article cannot change (its URL would break)");
+  if ((a.status === "published" || a.published_at) && d.slug !== a.slug) {
+    throw new AdminError("The slug of an article that has been live cannot change (its URL would break)");
+  }
   if (d.slug !== a.slug) {
     const [taken] = rowsOf(await db.execute(sql`SELECT 1 FROM articles WHERE slug = ${d.slug} AND id <> ${id}`));
     if (taken) throw new AdminError(`The slug "${d.slug}" is already used`);
@@ -220,6 +222,34 @@ export async function publishArticle(db: Db, id: string, provider: EmbeddingsPro
   );
   if (!row) throw new AdminError("The article was changed by someone else; reload and try again");
   return row;
+}
+
+/**
+ * Takes a published article offline: back to pending_review, removed from site search, original publish date kept
+ * (re-publishing restores it unchanged). Returns the other published articles that still link to it.
+ */
+export async function unpublishArticle(db: Db, id: string): Promise<{ slug: string; linkedFrom: string[] }> {
+  const a = await requireAgentArticle(db, id, ["published"]);
+  const [row] = rowsOf<{ slug: string }>(
+    await db.execute(sql`
+      WITH off AS (
+        UPDATE articles SET status = 'pending_review' WHERE id = ${id} AND status = 'published' RETURNING id, slug
+      ), idx AS (
+        UPDATE article_chunks SET searchable = false WHERE article_id IN (SELECT id FROM off)
+      )
+      SELECT slug FROM off
+    `),
+  );
+  if (!row) throw new AdminError("The article was changed by someone else; reload and try again");
+  // Slugs are [a-z0-9-] only, so they are safe inside the pattern.
+  const linkedFrom = rowsOf<{ slug: string }>(
+    await db.execute(sql`
+      SELECT slug FROM articles
+      WHERE status = 'published' AND id <> ${id} AND content ~ ${`/blog/${a.slug}([)"'#?/[:space:]]|$)`}
+      ORDER BY slug
+    `),
+  ).map((r) => r.slug);
+  return { slug: row.slug, linkedFrom };
 }
 
 export async function rejectArticle(db: Db, id: string, reason: string, requeueKeyword: boolean) {

@@ -118,6 +118,12 @@ async function httpChecks() {
   check("Admin blog API requires a session", api.res.status === 401, `status ${api.res.status}`);
   const csrf = await get("/api/admin/blog", { method: "POST", headers: { origin: "https://evil.example", "content-type": "application/json" }, body: "{}" });
   check("Admin blog API rejects cross-site writes", csrf.res.status === 403, `status ${csrf.res.status}`);
+
+  const login = await get("/admin/login");
+  check("Admin pages cannot be framed and are noindex", login.res.headers.get("x-frame-options") === "DENY" && (login.res.headers.get("x-robots-tag") ?? "").includes("noindex"), `${login.res.headers.get("x-frame-options")} | ${login.res.headers.get("x-robots-tag")}`);
+  const cron = await get("/api/cron/maintenance");
+  const cronBad = await get("/api/cron/maintenance", { headers: { authorization: "Bearer wrong-secret-wrong-secret" } });
+  check("Maintenance cron refuses callers without the secret", [401, 503].includes(cron.res.status) && [401, 503].includes(cronBad.res.status), `${cron.res.status}, ${cronBad.res.status}`);
 }
 
 function writeTypecheckConfig() {

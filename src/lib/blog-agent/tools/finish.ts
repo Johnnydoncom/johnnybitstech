@@ -77,6 +77,14 @@ async function addEmbeddingCost(ctx: ToolContext, runId: string, usd: number) {
   if (usd > 0) await ctx.db.execute(sql`UPDATE pipeline_runs SET embedding_cost_usd = embedding_cost_usd + ${usd}::numeric WHERE id = ${runId}`);
 }
 
+/** True while this run's embedding spend is under AGENT_MAX_EMBEDDING_USD_PER_RUN. */
+async function withinEmbeddingBudget(ctx: ToolContext, runId: string): Promise<boolean> {
+  const [row] = rowsOf<{ spent: string }>(
+    await ctx.db.execute(sql`SELECT embedding_cost_usd::text AS spent FROM pipeline_runs WHERE id = ${runId}`),
+  );
+  return Number(row?.spent ?? 0) < ctx.agentEnv.AGENT_MAX_EMBEDDING_USD_PER_RUN;
+}
+
 // ---------------------------------------------------------------------------
 
 const candidate = z.object({ url: z.string(), title: z.string(), summary: z.string(), type: z.string(), score: z.number() });
@@ -104,7 +112,7 @@ export const findLinkCandidates = defineTool({
 
     let hits: SiteSearchHit[] = await searchSiteContent(ctx.db, query, { limit: 20 });
     let retrieval: "lexical" | "hybrid" = "lexical";
-    if (ctx.agentEnv.RETRIEVAL_MODE === "hybrid" && ctx.embeddings) {
+    if (ctx.agentEnv.RETRIEVAL_MODE === "hybrid" && ctx.embeddings && (await withinEmbeddingBudget(ctx, run.id))) {
       const embedded = await ctx.embeddings.embed([query], "query");
       await addEmbeddingCost(ctx, run.id, embedded.costUsd);
       const byVector = await vectorSearch(ctx.db, embedded.vectors[0], ctx.embeddings.model, 20);
@@ -279,6 +287,7 @@ export const indexArticle = defineTool({
     scopes: z.record(z.string(), z.number()),
     embedded: z.boolean(),
     embedding_model: z.string().nullable(),
+    embedding_skipped: z.enum(["budget"]).optional(),
     verified: z.literal(true),
     next_stage: z.string(),
   }),
@@ -303,7 +312,8 @@ export const indexArticle = defineTool({
 
     let model: string | null = null;
     let dims: number | null = null;
-    if (ctx.embeddings) {
+    const overBudget = Boolean(ctx.embeddings) && !(await withinEmbeddingBudget(ctx, run.id));
+    if (ctx.embeddings && !overBudget) {
       const { vectors, costUsd } = await ctx.embeddings.embed(chunks.map((c) => c.body), "document");
       const ok = vectors.length === chunks.length && vectors.every((v) => v.length === ctx.embeddings!.dims && v.every(Number.isFinite));
       if (!ok) throw new ToolError("internal", "Embedding verification failed", "Retry index_article; if it fails again call report_failure");
@@ -319,7 +329,7 @@ export const indexArticle = defineTool({
 
     const scopes: Record<string, number> = {};
     for (const c of chunks) scopes[c.scope] = (scopes[c.scope] ?? 0) + 1;
-    return { chunk_count: chunks.length, scopes, embedded: Boolean(model), embedding_model: model, verified: true as const, next_stage: nextStage(saved, run) };
+    return { chunk_count: chunks.length, scopes, embedded: Boolean(model), embedding_model: model, ...(overBudget ? { embedding_skipped: "budget" as const } : {}), verified: true as const, next_stage: nextStage(saved, run) };
   },
 });
 

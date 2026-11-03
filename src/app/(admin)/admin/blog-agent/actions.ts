@@ -8,7 +8,7 @@ import { getDb } from "@/db/client";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import {
-  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, updateDraft,
+  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, unpublishArticle, updateDraft,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun } from "@/lib/blog-agent/admin/runs";
@@ -171,6 +171,18 @@ export async function publishAction(fd: FormData) {
     revalidateBlog([slug]);
     await log(admin, "article.publish", "article", a, { slug });
     return `Published at /blog/${slug}`;
+  });
+}
+
+export async function unpublishAction(fd: FormData) {
+  const a = id(fd);
+  await attempt(draftPage(a), "article.unpublish", async (admin) => {
+    const { slug, linkedFrom } = await unpublishArticle(getDb(), a);
+    revalidateBlog([slug]);
+    await log(admin, "article.unpublish", "article", a, { slug, linkedFrom });
+    return linkedFrom.length
+      ? `Taken offline. ${linkedFrom.length} published article(s) still link to it: ${linkedFrom.map((s) => `/blog/${s}`).join(", ")}`
+      : "Taken offline and moved back to review";
   });
 }
 

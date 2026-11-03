@@ -414,3 +414,18 @@ Still open:
   because a human may edit deliberately. The FAQ structured data is re-extracted from the article on every save.
 - Published agent articles stay editable (slug locked); edits re-index and revalidate the live page.
 - The old `/admin/blog` list sends agent (Markdown) articles to the review page instead of the Quill editor.
+
+## 17. Phase 5 deviations and additions
+
+- Security pass found four gaps, all closed: consent/admin pages could be framed (now `DENY` + `frame-ancestors
+  'none'`, plus `noindex` and `no-referrer`); image uploads had no pixel limit (decompression bombs; now 48 MP,
+  checked from the header before decoding); stage outputs had no size limit (now 300 KB); spent OAuth records and
+  logs grew forever (now a daily retention cron).
+- Retention runs as a Vercel Cron route rather than inside tool calls, so pruning never adds latency to Claude's run.
+- The embedding cap degrades instead of failing: a run over budget finishes lexical-only and the backfill embeds the
+  article later, so cost control never blocks a draft.
+- The end-to-end test drives the whole pipeline through the real `/api/mcp` route (OAuth bearer, JSON-RPC,
+  validation, rate limit, call log), then publishes as an admin and checks the post is live and searchable.
+- Added **Unpublish** for agent articles (there was no way to take one offline). The slug stays locked for any
+  article that has ever been live, so an indexed URL never changes.
+- Not done, by design: `blog_posts` stays until two weeks of stable production (see the runbook).

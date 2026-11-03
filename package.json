@@ -18,6 +18,7 @@
     "agent:seed": "tsx src/scripts/agent/seed.ts",
     "test:local": "node src/scripts/local-test/run.mjs",
     "agent:index-backfill": "tsx src/scripts/agent/index-backfill.ts",
+    "agent:maintenance": "tsx src/scripts/agent/maintenance.ts",
     "agent:optimize-images": "tsx src/scripts/agent/optimize-blog-images.ts"
   },
   "dependencies": {

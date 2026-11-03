@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { getArticle, listInternalLinks, prePublishCheck } from "@/lib/blog-agent/admin/drafts";
 import { renderArticleHtml } from "@/lib/blog/render";
-import { deleteArticleAction, editLinkAction, publishAction, rejectAction, restoreAction, saveDraftAction, uploadImageAction } from "../../actions";
+import { deleteArticleAction, editLinkAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction } from "../../actions";
 import { ConfirmButton } from "../../_components/ConfirmButton";
 import { AgentHeader, Card, Notice, StatusBadge, fmt } from "../../_components/ui";
 
@@ -51,8 +51,8 @@ export default async function DraftReviewPage({ params, searchParams }: { params
                 <div><Label htmlFor="title">Title</Label><Input id="title" name="title" defaultValue={a.title} required className="mt-1.5" /></div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <Label htmlFor="slug">Slug {a.status === "published" && <span className="text-muted-foreground">(locked once published)</span>}</Label>
-                    <Input id="slug" name="slug" defaultValue={a.slug} readOnly={a.status === "published"} required className="mt-1.5 font-mono" />
+                    <Label htmlFor="slug">Slug {(a.status === "published" || a.published_at) && <span className="text-muted-foreground">(locked once published)</span>}</Label>
+                    <Input id="slug" name="slug" defaultValue={a.slug} readOnly={a.status === "published" || Boolean(a.published_at)} required className="mt-1.5 font-mono" />
                   </div>
                   <div><Label htmlFor="category">Category</Label><Input id="category" name="category" defaultValue={a.category ?? ""} required className="mt-1.5" /></div>
                 </div>
@@ -158,6 +158,15 @@ export default async function DraftReviewPage({ params, searchParams }: { params
                   <Button type="submit" variant="outline" className="w-full">Reject</Button>
                 </form>
               </div>
+            )}
+            {a.status === "published" && (
+              <form action={unpublishAction} className="mt-6 border-t border-border pt-4">
+                <input type="hidden" name="id" value={a.id} />
+                <ConfirmButton variant="outline" className="w-full" message="Take this article off johnnybits.com? It goes back to review and can be published again.">
+                  Unpublish
+                </ConfirmButton>
+                <p className="mt-2 text-xs text-muted-foreground">Removes the page and its search entries; keeps the URL and publish date for re-publishing.</p>
+              </form>
             )}
             {a.status === "rejected" && (
               <div className="mt-6 flex gap-2">

@@ -18,6 +18,21 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+  async headers() {
+    // Admin, consent and OAuth pages must never be framed (clickjacking on "Approve") or indexed.
+    const locked = [
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+      { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+    ]
+    return [
+      { source: '/admin/:path*', headers: locked },
+      { source: '/oauth/:path*', headers: locked },
+      { source: '/api/mcp', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }, { key: 'X-Content-Type-Options', value: 'nosniff' }] },
+    ]
+  },
   async rewrites() {
     return [
       // OAuth discovery for the MCP connector (RFC 9728 / RFC 8414), served by route handlers.

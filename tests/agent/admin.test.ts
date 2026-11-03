@@ -3,7 +3,7 @@ import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
 import { createFixtureProvider } from "@/lib/blog-agent/embeddings/fixture";
 import {
   AdminError, deleteRejected, editInternalLink, getArticle, listInternalLinks, prePublishCheck, publishArticle,
-  rejectArticle, restoreToReview, setFeaturedImage, updateDraft, type DraftEdit,
+  rejectArticle, restoreToReview, setFeaturedImage, unpublishArticle, updateDraft, type DraftEdit,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, listQueue, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun, getRunDetail, listDrafts, overviewCounts } from "@/lib/blog-agent/admin/runs";
@@ -61,6 +61,30 @@ describe("review and publish", () => {
     expect(idx.s).toBe(idx.n);
     expect((await searchSiteContent(t.db, "website cost in Nigeria")).map((h) => h.url)).toContain(`/blog/${slug}`);
     expect((await adminError(publishArticle(t.db, articleId))).message).toMatch(/while the article is published/);
+  });
+
+  it("unpublishes: off the site and out of search, URL and publish date kept, linking posts reported", async () => {
+    const { articleId, slug } = await createDraftViaTools(t);
+    await setFeaturedImage(t.db, articleId, "https://abc123.public.blob.vercel-storage.com/blog/cover-x1.webp");
+    await publishArticle(t.db, articleId);
+    const firstPublished = (await getArticle(t.db, articleId))!.published_at;
+    await t.exec.query(
+      `INSERT INTO articles (title, slug, content, content_format, status, published_at)
+       VALUES ('Linker', 'linker', 'See [this guide](/blog/${slug}) for costs.', 'markdown', 'published', now()),
+              ('Prefix only', 'prefix-only', 'Unrelated [post](/blog/${slug}-extra).', 'markdown', 'published', now())`,
+    );
+
+    expect(await unpublishArticle(t.db, articleId)).toEqual({ slug, linkedFrom: ["linker"] });
+    const a = (await getArticle(t.db, articleId))!;
+    expect(a.status).toBe("pending_review");
+    expect(a.published_at).toEqual(firstPublished);
+    expect((await searchSiteContent(t.db, "website cost in Nigeria")).map((h) => h.url)).not.toContain(`/blog/${slug}`);
+    expect((await adminError(unpublishArticle(t.db, articleId))).message).toMatch(/while the article is pending review/);
+    expect((await adminError(updateDraft(t.db, articleId, await editFor(articleId, { slug: "new-slug" })))).message).toMatch(/has been live/);
+
+    await publishArticle(t.db, articleId);
+    expect((await getArticle(t.db, articleId))!).toMatchObject({ status: "published", published_at: firstPublished, slug });
+    expect((await searchSiteContent(t.db, "website cost in Nigeria")).map((h) => h.url)).toContain(`/blog/${slug}`);
   });
 
   it("re-checks the edited text: uncited figures and NEEDS_SOURCE block, length changes only warn", async () => {
