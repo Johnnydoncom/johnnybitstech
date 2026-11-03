@@ -1,6 +1,7 @@
 import { verifySession } from "@/lib/auth";
 import { query, execute } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { isSameOrigin } from "@/lib/security/same-origin";
 
 export async function GET() {
   const session = await verifySession();
@@ -18,6 +19,7 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

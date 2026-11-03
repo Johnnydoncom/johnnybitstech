@@ -9,6 +9,7 @@ import { Save, Loader2 } from "lucide-react";
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [passSaved, setPassSaved] = useState(false);
   const [settings, setSettings] = useState({
     smtp_host: "",
     smtp_port: "",
@@ -20,30 +21,33 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch("/api/admin/settings");
-      if (res.ok) {
+    let active = true;
+    fetch("/api/admin/settings")
+      .then(async (res) => {
+        if (!res.ok || !active) return;
         const data = await res.json();
+        if (!active) return;
         setSettings({
           smtp_host: data.smtp_host || "",
           smtp_port: data.smtp_port || "",
           smtp_user: data.smtp_user || "",
-          smtp_pass: data.smtp_pass || "",
+          smtp_pass: "", // write-only: the server never sends it back
           smtp_from_email: data.smtp_from_email || "",
           smtp_from_name: data.smtp_from_name || "",
           smtp_to_email: data.smtp_to_email || "",
         });
-      }
-    } catch (error) {
-      toast.error("Failed to fetch settings");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setPassSaved(Boolean(data.smtp_pass_set));
+      })
+      .catch(() => {
+        if (active) toast.error("Failed to fetch settings");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSettings({ ...settings, [e.target.name]: e.target.value });
@@ -61,11 +65,13 @@ export default function SettingsPage() {
 
       if (res.ok) {
         toast.success("Settings saved successfully");
+        if (settings.smtp_pass) setPassSaved(true);
+        setSettings((s) => ({ ...s, smtp_pass: "" }));
       } else {
         const error = await res.json();
         toast.error(error.error || "Failed to save settings");
       }
-    } catch (error) {
+    } catch {
       toast.error("An error occurred while saving");
     } finally {
       setSaving(false);
@@ -130,7 +136,8 @@ export default function SettingsPage() {
                   type="password"
                   value={settings.smtp_pass}
                   onChange={handleChange}
-                  placeholder="••••••••••••"
+                  autoComplete="new-password"
+                  placeholder={passSaved ? "Saved — leave blank to keep it" : "••••••••••••"}
                 />
               </div>
               <div className="space-y-2 md:col-span-2 border-t pt-4 mt-2">

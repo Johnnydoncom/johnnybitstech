@@ -1,8 +1,10 @@
 import { verifySession, verifyCredentials, createSession } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { isSameOrigin } from "@/lib/security/same-origin";
 import bcrypt from "bcryptjs";
 import { execute } from "@/lib/db";
 export async function PUT(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

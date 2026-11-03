@@ -1,11 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
+import "react-quill-new/dist/quill.snow.css";
 import { useMemo } from "react";
 
-// Dynamically import ReactQuill with no SSR
-const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
+// Quill touches `document`, so load it on the client only. react-quill-new is the maintained fork of
+// react-quill: the original calls ReactDOM.findDOMNode, which React 19 removed (the editor crashed on open).
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 interface RichTextEditorProps {
   value: string;
@@ -30,6 +31,8 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     <div className="bg-background">
       <ReactQuill
         theme="snow"
+        // Plain innerHTML, like the original react-quill (getSemanticHTML turns every space into &nbsp;).
+        useSemanticHTML={false}
         value={value}
         onChange={onChange}
         modules={modules}
