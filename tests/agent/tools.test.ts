@@ -3,7 +3,7 @@ import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
 import { linkTargetSeeds } from "@/lib/blog-agent/seed/link-targets";
 import { seedAuthors, seedLinkTargets } from "@/lib/blog-agent/seed/seed";
 import { createTestDb, type TestDb } from "../helpers/db";
-import { toolCaller, type CallOutcome } from "../helpers/tools";
+import { toolCaller, toolDeps, type CallOutcome } from "../helpers/tools";
 import * as fx from "../fixtures/stages";
 
 let t: TestDb;
@@ -48,10 +48,10 @@ describe("full tool sequence (fixtures, no network)", () => {
     const runId = await startRun();
     await saveThroughDraft(runId);
     const links = data(await call("save_stage_output", { run_id: runId, stage: "s8_links", output: fx.s8 }));
-    expect(links.next_stage).toBe("s7_seo");
+    expect(links.next_stage).toBe("apply_internal_links");
     data(await call("save_stage_output", { run_id: runId, stage: "s7_seo", output: fx.s7 }));
     const qa = data(await call("save_stage_output", { run_id: runId, stage: "s9_qa", output: fx.s9Pass }));
-    expect(qa.next_stage).toBe("index_and_create_draft");
+    expect(qa.next_stage).toBe("apply_internal_links");
 
     const run = data(await call("get_run", { run_id: runId }));
     const stages = run.stages as Record<string, { version: number; content_hash: string }>;
@@ -236,7 +236,7 @@ describe("gates and validation", () => {
     const { invokeTool } = await import("@/lib/blog-agent/mcp/server");
     const { BLOG_AGENT_TOOLS } = await import("@/lib/blog-agent/tools");
     const tool = BLOG_AGENT_TOOLS.find((x) => x.name === "get_brand_context")!;
-    const deps = { getDb: () => t.db, siteOrigin: "https://johnnybits.com", rateLimitPerMinute: 2 };
+    const deps = { ...toolDeps(t), rateLimitPerMinute: 2 };
     const auth = { token: "t", clientId: "limited", scopes: ["blog_agent"] };
     await invokeTool(tool, {}, auth, deps);
     await invokeTool(tool, {}, auth, deps);

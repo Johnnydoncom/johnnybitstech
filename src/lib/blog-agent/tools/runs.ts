@@ -1,10 +1,8 @@
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { rowsOf } from "@/db/rows";
-import { isUniqueViolation } from "@/lib/blog/admin";
 import { contentHash } from "../hash";
 import { AGENT_STAGES, STAGE_PREREQUISITES, stageSchemas, type AgentStage } from "../schemas/stages";
-import { assertRunning, latestStages, loadRun, nextStage, staleStages, touchRun } from "./run-store";
+import { assertRunning, insertStageOutput, latestStages, loadRun, nextStage, staleStages, touchRun } from "./run-store";
 import { checkStage, type CheckIssue } from "./stage-checks";
 import { defineTool, runAdminUrl, ToolError } from "./types";
 
@@ -57,7 +55,7 @@ export const getRun = defineTool({
       stages: Object.fromEntries(
         [...saved].map(([stage, r]) => [stage, { version: r.version, saved_at: iso(r.created_at)!, content_hash: r.content_hash, output: r.output }]),
       ),
-      next_stage: nextStage(saved),
+      next_stage: nextStage(saved, run),
       stale_stages: staleStages(saved),
     };
   },
@@ -121,27 +119,13 @@ export const saveStageOutput = defineTool({
           : contentHash(JSON.stringify(parsed.data));
 
     if (input.validate_only) {
-      return { saved: false, stage, content_hash: hash, next_stage: nextStage(saved), warnings };
+      return { saved: false, stage, content_hash: hash, next_stage: nextStage(saved, run), warnings };
     }
 
-    const insert = () =>
-      ctx.db.execute(sql`
-        INSERT INTO pipeline_stage_outputs (run_id, stage, version, output, content_hash)
-        SELECT ${run.id}, ${stage}::pipeline_stage, coalesce(max(version), 0) + 1, ${JSON.stringify(parsed.data)}::jsonb, ${hash}
-        FROM pipeline_stage_outputs WHERE run_id = ${run.id} AND stage = ${stage}::pipeline_stage
-        RETURNING version
-      `);
-    let result;
-    try {
-      result = await insert();
-    } catch (error) {
-      if (!isUniqueViolation(error)) throw error;
-      result = await insert(); // concurrent save of the same stage: take the next version
-    }
-    const [{ version }] = rowsOf<{ version: number }>(result);
+    const version = await insertStageOutput(ctx.db, run.id, stage, parsed.data, hash);
     await touchRun(ctx.db, run.id, stage);
     saved.set(stage, { stage, version, output: parsed.data as Record<string, unknown>, content_hash: hash, created_at: new Date() });
-    return { saved: true, stage, version, content_hash: hash, next_stage: nextStage(saved), warnings };
+    return { saved: true, stage, version, content_hash: hash, next_stage: nextStage(saved, run), warnings };
   },
 });
 

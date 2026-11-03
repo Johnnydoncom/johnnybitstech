@@ -13,7 +13,7 @@ export const s1 = {
   questions: ["How much is a basic website in Nigeria?", "Why do website prices vary so much?"],
   serp_features: ["People also ask", "Featured snippet"],
   content_type: "cost_breakdown",
-  target_word_count: 1600,
+  target_word_count: 800,
 };
 
 export const s3 = {
@@ -25,7 +25,7 @@ export const s3 = {
   eeat: { author_slug: "odoh-john", experience_angles: ["Johnnybits builds corporate websites and online stores (see services)"] },
   internal_link_targets: [{ url: "/ecommerce-web-development", reason: "Readers pricing an online store" }],
   cta: { label: "Book a free 30-minute strategy call", url: "/contact-us" },
-  word_count_target: 1600,
+  word_count_target: 800,
   avoid: ["Quoting Johnnybits' own prices"],
 };
 
@@ -56,20 +56,22 @@ export const s5 = {
   cta_placement: "After the cost-control section and at the end.",
 };
 
-const para = (topic: string) =>
-  `When you plan ${topic}, it helps to separate one-off costs from recurring ones so the budget does not surprise you later. ` +
-  "Ask every developer to itemise their quote so you can compare like with like across proposals.";
-
 export const s6 = {
   title: "How Much Does a Website Cost in Nigeria? A Practical Price Guide",
   markdown: [
-    "Most businesses can estimate their website budget once they know which parts they are paying for.",
+    "Working out the website cost in Nigeria is easier once you know which parts you are paying for. Most quotes combine one-off work, such as design and development, with recurring costs that continue for as long as the site is live. This guide walks through each part so you can build a realistic budget and compare proposals with confidence.",
     "",
-    "## What drives website cost",
+    "## What drives website cost in Nigeria",
     "",
-    para("a business website"),
+    "Scope is the biggest driver. A small brochure site with a handful of pages needs far less design and testing than a platform with customer accounts, search and integrations. Every extra feature adds planning, building and checking time, and that time is what a developer charges for.",
     "",
-    "Your domain name is renewed every year through an accredited registrar.[^r1] " + para("the domain"),
+    "Your domain name is renewed every year through an accredited registrar.[^r1] Choose a name early, register it in the business name rather than a developer's personal account, and keep the login details somewhere safe so that renewals never lapse.",
+    "",
+    "Design depth matters too. A template adapted to your brand is quicker to deliver than a custom design built around your customers' journeys. Custom work costs more, but it often converts better because every page is planned around what visitors need to do next.",
+    "",
+    "Integrations add cost as well. Connecting the site to an accounting package, a customer database, a delivery partner or a booking calendar means extra development and testing, because each connection has its own rules and failure cases. List the systems your team already uses so the developer can price these connections from the start rather than discovering them halfway through the project.",
+    "",
+    "Content is the cost many businesses forget. Someone has to write the service descriptions, take product photos and gather testimonials from real customers. If your team cannot produce this material, budget for a copywriter or photographer as part of the project.",
     "",
     "## Typical price ranges by website type",
     "",
@@ -77,18 +79,29 @@ export const s6 = {
     "|---|---|---|",
     "| Brochure site | 5–8 pages, contact form | Design depth, copywriting |",
     "| Online store | Catalogue, cart, checkout | Products, payment gateway, delivery rules |",
+    "| Web application | User accounts, dashboards | Features, integrations, security |",
     "",
-    "If you plan to sell online, an ecommerce website needs product management, checkout and payment integration. Every card payment also attracts a gateway fee.[^r3]",
+    "If you plan to sell online, an ecommerce website needs product management, checkout and payment integration. Every card payment also attracts a gateway fee, so include those charges when you model your margins.[^r3]",
+    "",
+    "Web applications sit at the top of the range because they behave more like software products than websites. They need careful planning of user roles, data and security, and they usually grow in phases after the first release.",
     "",
     "## Ongoing costs after launch",
     "",
-    "Hosting is billed monthly or yearly depending on the plan.[^r2] " + para("hosting"),
+    "Hosting is billed monthly or yearly depending on the plan you choose.[^r2] Cheap shared hosting can be fine for a small site, but a busy store needs reliable servers, regular backups and enough capacity for sales periods.",
     "",
-    "Many small businesses underestimate maintenance.[^r4] " + para("maintenance"),
+    "A website maintenance plan covers updates, backups and security monitoring after launch. Without one, plugins and frameworks fall out of date, and small problems turn into outages that cost far more to fix than regular care would have.",
+    "",
+    "Many small businesses underestimate maintenance and content updates.[^r4] Set aside a modest monthly amount for changes such as new pages, seasonal promotions and price updates, so the site keeps pace with the business instead of slowly going stale.",
     "",
     "## How to keep costs under control",
     "",
-    para("a phased launch"),
+    "Before you sign, ask for an itemised quote that lists every page, feature and integration. A clear breakdown makes proposals comparable and shows exactly what you can remove or postpone if the budget is tight.",
+    "",
+    "Launch in phases. Start with the pages and features that bring in enquiries or sales, measure how visitors use them, and add the rest once you have real data. Phasing spreads the cost and keeps you from paying for features nobody uses.",
+    "",
+    "Reuse what you already have. Existing logos, photos, product descriptions and brand colours all reduce design and content time. Gather them before the project starts so your developer is not waiting on material halfway through the build.",
+    "",
+    "Finally, agree on ownership. Make sure the domain, hosting account, source code and analytics are registered to your business, and that you receive the logins at handover. This protects your investment if you ever change developers.",
     "",
     "## Frequently asked questions",
     "",
@@ -114,6 +127,18 @@ export const s8 = {
       anchor_text: "ecommerce website",
       sentence: "If you plan to sell online, an ecommerce website needs product management, checkout and payment integration.",
       reason: "Readers pricing an online store",
+    },
+    {
+      url: "/website-maintenance-and-support",
+      anchor_text: "website maintenance plan",
+      sentence: "A website maintenance plan covers updates, backups and security monitoring after launch.",
+      reason: "Explains the ongoing care service",
+    },
+    {
+      url: "/contact-us",
+      anchor_text: "itemised quote",
+      sentence: "Before you sign, ask for an itemised quote that lists every page, feature and integration.",
+      reason: "Next step for readers ready to get a quote",
     },
   ],
 };

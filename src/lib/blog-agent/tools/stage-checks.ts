@@ -5,6 +5,7 @@ import remarkParse from "remark-parse";
 import { rowsOf } from "@/db/rows";
 import type { Db } from "@/db/types";
 import { getBrandContext } from "../brand/johnnybits";
+import type { PipelineStage } from "@/db/schema";
 import type { AgentStage } from "../schemas/stages";
 import type { StageRecord } from "./run-store";
 import type { s2ClusterSchema, s3BriefSchema, s4ResearchSchema, s6DraftSchema, s8LinksSchema } from "../schemas/stages";
@@ -52,7 +53,7 @@ async function checkSitePaths(db: Db, entries: { path: string; url: string }[], 
 }
 
 /** Database- and cross-stage checks run after the stage's zod schema passes. */
-export async function checkStage(db: Db, stage: AgentStage, output: unknown, saved: ReadonlyMap<AgentStage, StageRecord>): Promise<CheckResult> {
+export async function checkStage(db: Db, stage: AgentStage, output: unknown, saved: ReadonlyMap<PipelineStage, StageRecord>): Promise<CheckResult> {
   const errors: CheckIssue[] = [];
   const warnings: CheckIssue[] = [];
 

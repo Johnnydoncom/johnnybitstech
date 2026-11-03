@@ -43,6 +43,8 @@ export const runStatus = pgEnum("run_status", ["running", "needs_human", "draft_
 export const pipelineStage = pgEnum("pipeline_stage", [
   "s1_keyword", "s2_cluster", "s3_brief", "s4_research", "s5_outline", "s6_draft",
   "s7_seo", "s8_links", "s9_qa", "s10_index", "s11_draft",
+  // App-produced (0003)
+  "s8_applied", "s7_package", "s9_validation",
 ]);
 
 export type ArticleStatus = (typeof articleStatus.enumValues)[number];

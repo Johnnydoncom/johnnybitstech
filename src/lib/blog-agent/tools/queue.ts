@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { rowsOf } from "@/db/rows";
 import type { Db } from "@/db/types";
-import { latestStages, nextStage, releaseStale, STALE_RUN_HOURS } from "./run-store";
+import { latestStages, loadRun, nextStage, releaseStale, STALE_RUN_HOURS } from "./run-store";
 import { defineTool, normalizeKeyword, ToolError, type ToolContext } from "./types";
 
 /** Agent-added keywords cannot outrank the admin's top priorities (81–100). */
@@ -181,7 +181,7 @@ export const claimNextKeyword = defineTool({
           status: "resumed" as const,
           run_id: open.id,
           keyword: { id: open.keyword_id, keyword: open.keyword, priority: open.priority ?? 0, notes: open.notes },
-          next_stage: nextStage(saved),
+          next_stage: nextStage(saved, await loadRun(ctx.db, open.id)),
           message: "Resuming the open run for this connection. Call get_run to load its saved stages.",
         };
       }

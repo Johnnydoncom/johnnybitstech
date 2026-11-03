@@ -4,6 +4,8 @@ import type { Db } from "@/db/types";
 
 export type SiteSearchHit = {
   kind: "article" | "link_target";
+  /** "article" for blog posts, otherwise the link target type (service, contact, portfolio, …). */
+  type: string;
   id: string;
   url: string;
   title: string;
@@ -32,21 +34,21 @@ export async function searchSiteContent(db: Db, query: string, options: SiteSear
         ${q}::text AS raw
     ),
     hits AS (
-      SELECT 'article' AS kind, a.id::text AS id, '/blog/' || a.slug AS url, a.title, coalesce(a.summary, '') AS summary,
+      SELECT 'article' AS kind, 'article' AS type, a.id::text AS id, '/blog/' || a.slug AS url, a.title, coalesce(a.summary, '') AS summary,
              coalesce(ts_rank_cd(a.search_tsv, q.tsq, 32), 0) AS text_score,
              greatest(similarity(a.title, q.raw), similarity(coalesce(a.primary_keyword, ''), q.raw)) AS trigram_score
       FROM articles a, q
       WHERE a.status = 'published'
         AND ((q.tsq IS NOT NULL AND a.search_tsv @@ q.tsq) OR a.title % q.raw OR a.primary_keyword % q.raw)
       UNION ALL
-      SELECT 'link_target', t.id::text, t.url, t.title, t.summary,
+      SELECT 'link_target', t.type::text, t.id::text, t.url, t.title, t.summary,
              coalesce(ts_rank_cd(t.search_tsv, q.tsq, 32), 0),
              similarity(t.title, q.raw)
       FROM link_targets t, q
       WHERE t.is_active
         AND ((q.tsq IS NOT NULL AND t.search_tsv @@ q.tsq) OR t.title % q.raw)
     )
-    SELECT kind, id, url, title, summary, round((0.7 * text_score + 0.3 * trigram_score)::numeric, 4)::float8 AS score
+    SELECT kind, type, id, url, title, summary, round((0.7 * text_score + 0.3 * trigram_score)::numeric, 4)::float8 AS score
     FROM hits
     ORDER BY score DESC, title
     LIMIT ${limit}

@@ -1,5 +1,7 @@
 import type { z } from "zod";
 import type { Db } from "@/db/types";
+import type { EmbeddingsProvider } from "../embeddings/types";
+import type { AgentEnv } from "../env";
 
 export type ToolContext = {
   db: Db;
@@ -8,6 +10,9 @@ export type ToolContext = {
   grantId: string | null;
   /** Origin for admin links in tool output, e.g. https://johnnybits.com */
   siteOrigin: string;
+  agentEnv: AgentEnv;
+  /** Null in lexical-only mode (no embeddings key configured). */
+  embeddings: EmbeddingsProvider | null;
 };
 
 export type ToolErrorCode = "not_found" | "invalid_state" | "validation_failed" | "conflict" | "rate_limited" | "internal";

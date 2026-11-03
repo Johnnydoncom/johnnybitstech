@@ -26,7 +26,7 @@ describe("migrations", () => {
   it("applies every migration and records it", async () => {
     t = await createTestDb();
     const status = await migrationStatus(t.exec);
-    expect(status.map((s) => [s.version, Boolean(s.appliedAt)])).toEqual([["0001", true], ["0002", true]]);
+    expect(status.map((s) => [s.version, Boolean(s.appliedAt)])).toEqual([["0001", true], ["0002", true], ["0003", true]]);
     expect(await migrateUp(t.exec)).toEqual([]); // idempotent
   });
 
@@ -50,6 +50,10 @@ describe("migrations", () => {
 
   it("rolls back cleanly and can be re-applied", async () => {
     t = await createTestDb();
+    await t.exec.query("INSERT INTO pipeline_runs (keyword) VALUES ('k')");
+    await t.exec.query("INSERT INTO pipeline_stage_outputs (run_id, stage, version, output) SELECT id, 's8_applied', 1, '{}' FROM pipeline_runs");
+    expect(await migrateDown(t.exec)).toEqual(["0003"]);
+    expect((await t.exec.query("SELECT 1 FROM pipeline_stage_outputs")).length).toBe(0); // app-stage rows removed with the enum values
     expect(await migrateDown(t.exec)).toEqual(["0002"]);
     expect(await columnsOf(t, "oauth_tokens")).toEqual(new Set());
     expect(await columnsOf(t, "articles")).toContain("slug"); // 0001 still applied
@@ -57,7 +61,7 @@ describe("migrations", () => {
     for (const table of tables) expect((await columnsOf(t, getTableName(table))).size).toBe(0);
     expect(await columnsOf(t, "blog_posts")).toContain("slug"); // legacy table untouched
     expect(await columnsOf(t, "admin_users")).not.toContain("role");
-    expect(await migrateUp(t.exec)).toEqual(["0001", "0002"]);
+    expect(await migrateUp(t.exec)).toEqual(["0001", "0002", "0003"]);
   });
 
   it("enforces article invariants", async () => {

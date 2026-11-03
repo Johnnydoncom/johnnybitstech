@@ -8,8 +8,8 @@ Design and decisions: [`blog-agent-plan.md`](./blog-agent-plan.md). This file is
 |---|---|---|
 | 0 | Recon and plan | Done |
 | 1 | Blog SEO fixes, `articles` model, migrations, backfill, link targets, retrieval, brand context, tests | Done |
-| 2 | OAuth + `/api/mcp` + run/queue/stage tools | **Done, awaiting review** |
-| 3 | Linking, SEO package, validators, indexing, `create_draft` | Not started |
+| 2 | OAuth + `/api/mcp` + run/queue/stage tools | Done (tested locally against production 2026-11-02) |
+| 3 | Linking, SEO package, validators, indexing, `create_draft` | **Done, awaiting review** |
 | 4 | `/admin/blog-agent` + publish flow | Not started |
 | 5 | Hardening, docs | Not started |
 | 6 | Cowork skills + scheduled task | Not started |
@@ -24,6 +24,8 @@ Design and decisions: [`blog-agent-plan.md`](./blog-agent-plan.md). This file is
 | `npm run db:migrate` | Applies pending migrations in `db/migrations`, each in a transaction |
 | `npm run db:rollback [-- N]` | Reverts the latest (or latest N) migrations using the `.down.sql` files |
 | `npm run agent:seed` | Upserts authors + link targets, copies legacy `blog_posts` into `articles`. Safe to re-run |
+| `npm run agent:index-backfill` | Index entries for published posts (+ embeddings when a provider is set). Safe to re-run |
+| `npm run test:local` | End-to-end test on your machine against `.env.local`'s database (or double-click `test-local.cmd`) |
 
 Scripts read `.env.local` (then `.env`). Migrations use `DATABASE_URL_UNPOOLED` when set, otherwise `DATABASE_URL`.
 
@@ -89,10 +91,36 @@ Manage or revoke connections at `/admin/blog-agent/connections` (also shows the 
 | `get_run` | Run + latest version of every stage, next stage, stale stages |
 | `save_stage_output` | Validates (schema + site data) and versions a stage; `validate_only` to check first |
 | `check_cannibalization` | `ok` / `review` / `block` against published, pending and in-flight content; required before s3 |
+| `find_link_candidates` | Related published articles + site pages (lexical; hybrid when embeddings are on), always the service/portfolio/contact pages, and the link-count range |
+| `apply_internal_links` | Inserts the `s8_links` picks into the draft in code, after checking every rule; verifies the result |
+| `build_seo_package` | Unique slug, canonical, JSON-LD, word count, read time, Flesch score, keyword density/placement |
+| `validate_article` | Hard gate (see below); returns `passed` + exact errors |
+| `index_article` | Retrieval units (full, intro, each H2, FAQ, meta), embedded and verified when embeddings are on |
+| `create_draft` | Gated; creates the `pending_review` article + index entries (not searchable) in one statement |
 | `report_failure` | Stops the run as `needs_human` with a report |
 
 No publish, approve, reject or delete tool exists; a test fails if one is ever added.
-Phase 3 adds `find_link_candidates`, `apply_internal_links`, `build_seo_package`, `validate_article`, `index_article`, `create_draft`.
+**Run order** (every save and `get_run` return `next_stage`): `s1_keyword` → `check_cannibalization` → `s3_brief` →
+`s4_research` → `s5_outline` → `s6_draft` → `find_link_candidates` → `s8_links` → `apply_internal_links` → `s7_seo` →
+`build_seo_package` → `s9_qa` → `validate_article` → `index_article` → `create_draft`.
+
+**Version binding:** the linked article, SEO package, validation and index are tied to content hashes. Re-saving the
+draft (s6) makes all of them stale, and `create_draft` refuses until each is redone for the current text. QA (s9) is
+bound to the exact draft it reviewed.
+
+**Link rules (enforced in code):** 3 to ~1 per 250 words (max 10) internal links including any already in the draft;
+only published pages; each URL once; no repeated anchors; anchor verbatim in a sentence that appears exactly once;
+plain text only (not in headings, footnotes, existing links, code or split by bold/italic); at least one service,
+portfolio or contact link.
+
+**Validation (hard errors):** no H1, first heading H2, no skipped levels, no duplicate headings, ≥3 H2s, an FAQ H2;
+word count within −15%/+25% of the brief; no `[[NEEDS_SOURCE]]`; every sentence with a figure (%, currency, scale
+words, or a 2+-digit number that is not a year) cites research; every citation is a saved research item with a
+definition linking its exact source; external links only to research sources; internal links exist and are in range;
+no banned brand claims; keyword density ≤ 3.5%; meta lengths; FAQ structured data identical to the visible FAQ;
+BlogPosting JSON-LD matches the title and canonical. Readability, keyword placement and density 2.5–3.5% are warnings.
+
+**Rolling out Phase 3:** `npm install` → `npm run db:migrate` (applies `0003`) → deploy. Optional: `npm run agent:index-backfill`.
 
 **Testing locally with MCP Inspector:** set `OAUTH_ISSUER=http://localhost:3000` in `.env.local`, run `npm run dev`,
 then `npx @modelcontextprotocol/inspector`, choose Streamable HTTP, URL `http://localhost:3000/api/mcp`, and use the

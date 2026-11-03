@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import type { AuthInfo, CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import type { Db } from "@/db/types";
+import type { EmbeddingsProvider } from "../embeddings/types";
+import type { AgentEnv } from "../env";
 import { rateLimit } from "@/lib/rate-limit";
 import { BLOG_AGENT_TOOLS } from "../tools";
 import { ToolError, type ToolContext, type ToolDefinition } from "../tools/types";
@@ -9,7 +11,8 @@ export const SERVER_INFO = { name: "johnnybits-blog-agent", version: "1.0.0" } a
 
 export const SERVER_INSTRUCTIONS = [
   "Johnnybits Blog Agent connector. You produce exactly one article draft per session for human review; you cannot publish.",
-  "Start with get_brand_context, then claim_next_keyword. Save every stage with save_stage_output before moving on.",
+  "Start with get_brand_context, then claim_next_keyword. Save every stage with save_stage_output before moving on;",
+  "get_run and every save report next_stage, the next stage or tool to call.",
   "Link only to URLs returned by search_site_content or get_brand_context. Never invent statistics, quotes, clients or results.",
   "If a tool returns validation_failed, fix every listed issue and retry at most twice; if you stop for any reason, call report_failure.",
 ].join("\n");
@@ -18,6 +21,8 @@ export type ServerDeps = {
   getDb: () => Db;
   siteOrigin: string;
   rateLimitPerMinute: number;
+  agentEnv: AgentEnv;
+  embeddings: EmbeddingsProvider | null;
 };
 
 type ErrorPayload = { error: { code: string; message: string; hint?: string; details?: unknown } };
@@ -42,7 +47,7 @@ export async function invokeTool(tool: ToolDefinition, args: unknown, auth: Auth
     if (!limit.allowed) {
       throw new ToolError("rate_limited", `Rate limit of ${limit.limit} calls per minute reached`, `Wait until ${limit.resetAt.toISOString()} and retry`);
     }
-    const ctx: ToolContext = { db, clientId, grantId, siteOrigin: deps.siteOrigin };
+    const ctx: ToolContext = { db, clientId, grantId, siteOrigin: deps.siteOrigin, agentEnv: deps.agentEnv, embeddings: deps.embeddings };
     const input = tool.input.parse(args ?? {});
     const output = tool.output.parse(await tool.run(ctx, input)) as Record<string, unknown>;
     ok = true;

@@ -65,8 +65,9 @@ describe("/api/mcp", () => {
     const { json } = await rpc("tools/list");
     const names: string[] = json.result.tools.map((x: { name: string }) => x.name);
     expect(names.sort()).toEqual([
-      "check_cannibalization", "claim_next_keyword", "create_run", "enqueue_keywords", "get_brand_context",
-      "get_run", "report_failure", "save_cluster_plan", "save_stage_output", "search_site_content",
+      "apply_internal_links", "build_seo_package", "check_cannibalization", "claim_next_keyword", "create_draft", "create_run",
+      "enqueue_keywords", "find_link_candidates", "get_brand_context", "get_run", "index_article", "report_failure",
+      "save_cluster_plan", "save_stage_output", "search_site_content", "validate_article",
     ]);
     expect(names.filter((n) => /publish|approve|reject|delete/.test(n))).toEqual([]);
     const brand = json.result.tools.find((x: { name: string }) => x.name === "get_brand_context");

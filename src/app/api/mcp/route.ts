@@ -1,6 +1,8 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import type { AuthInfo } from "@modelcontextprotocol/server";
 import { getDb } from "@/db/client";
+import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
+import { parseAgentEnv } from "@/lib/blog-agent/env";
 import { registerBlogAgentTools, SERVER_INFO, SERVER_INSTRUCTIONS } from "@/lib/blog-agent/mcp/server";
 import { getOAuthConfig, SCOPE_BLOG_AGENT } from "@/lib/oauth/config";
 import { safeEqual } from "@/lib/oauth/crypto";
@@ -11,6 +13,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const config = getOAuthConfig();
+// Fails loudly at startup on a misconfigured agent (e.g. RETRIEVAL_MODE=hybrid without a provider).
+const agentEnv = parseAgentEnv();
+const embeddings = getEmbeddingsProvider(agentEnv);
 
 const handler = createMcpHandler(
   (server) =>
@@ -18,6 +23,8 @@ const handler = createMcpHandler(
       getDb,
       siteOrigin: config.issuer,
       rateLimitPerMinute: Number(process.env.MCP_RATE_LIMIT_PER_MIN) || 120,
+      agentEnv,
+      embeddings,
     }),
   { serverInfo: SERVER_INFO, instructions: SERVER_INSTRUCTIONS },
 );

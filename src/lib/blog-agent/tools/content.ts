@@ -31,6 +31,7 @@ export const searchSiteContentTool = defineTool({
     results: z.array(
       z.object({
         kind: z.enum(["article", "link_target"]),
+        type: z.string(),
         id: z.string(),
         url: z.string(),
         title: z.string(),

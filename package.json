@@ -16,7 +16,8 @@
     "db:migrate": "tsx src/scripts/db/migrate.ts up",
     "db:rollback": "tsx src/scripts/db/migrate.ts down",
     "agent:seed": "tsx src/scripts/agent/seed.ts",
-    "test:local": "node src/scripts/local-test/run.mjs"
+    "test:local": "node src/scripts/local-test/run.mjs",
+    "agent:index-backfill": "tsx src/scripts/agent/index-backfill.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

@@ -48,7 +48,21 @@ export const brandContextSchema = z.object({
   /** Claims the writer may state as fact about Johnnybits. Empty until the owner verifies them. */
   approvedClaims: z.array(z.object({ claim: z.string(), evidence: z.string() })),
   /** Figures and phrases that must never appear in agent output (unverified or contradictory). */
-  bannedClaims: z.array(z.object({ pattern: z.string(), reason: z.string() })),
+  bannedClaims: z.array(
+    z.object({
+      pattern: z.string(),
+      reason: z.string(),
+      /** Case-insensitive regular expression validate_article uses to detect the claim in an article. */
+      regex: z.string().refine((r) => {
+        try {
+          new RegExp(r, "iu");
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Invalid regular expression"),
+    }),
+  ),
   /** Statements found on the site that are plausible but not yet verified by the owner. Do not use. */
   pendingVerification: z.array(z.object({ statement: z.string(), foundOn: sitePath })),
 });

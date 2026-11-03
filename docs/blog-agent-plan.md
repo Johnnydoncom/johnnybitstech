@@ -389,3 +389,17 @@ Still open:
 - A minimal `/admin/blog-agent/connections` page (connector URL, connections with revoke, recent tool calls) ships now
   because revocation must exist as soon as the connector does; the full agent admin is still Phase 4.
 - Existing posts are credited to Odoh John (byline + Person JSON-LD with LinkedIn `sameAs`); `updated_at` is preserved.
+
+## 15. Phase 3 deviations from this plan
+
+- `apply_internal_links` takes the picks from the saved `s8_links` stage (already schema- and site-checked) instead of a
+  `links[]` argument, so the picks are versioned with the run and the tool is idempotent.
+- App-produced outputs are stored as stages too (`s8_applied`, `s7_package`, `s9_validation`, migration 0003), so
+  `get_run` shows them and they are versioned and hash-bound like Claude's stages.
+- `index_article` stores the verified index units on the run; `create_draft` writes the article, its index entries
+  (`searchable=false`), the run status and the keyword status in one SQL statement, then verifies the stored count.
+  (Index entries reference the article, which does not exist before `create_draft`.)
+- Link-count range is 3 to ceil(words/250), max 10; word-count tolerance is −15%/+25% (short is worse than long).
+- `create_draft` re-checks for a published or pending article with the same primary keyword at the last moment.
+- Hybrid retrieval (reciprocal rank fusion of lexical + vector) and `agent:index-backfill` are built and tested with
+  the offline fixture provider; they stay off until an embeddings key is configured.
