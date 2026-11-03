@@ -9,11 +9,14 @@ three skills live in `docs/cowork/skills/` and are saved to the Claude account f
    URL `https://johnnybits.com/api/mcp` → Connect → log in to the admin → Approve.
 2. Save the three skills: `johnnybits-blog-research` (S1–S4), `johnnybits-blog-writing` (S5–S8) and
    `johnnybits-blog-qa` (S9, used by the independent reviewer).
-3. Add a few keywords in `/admin/blog-agent/queue`.
-4. Run the **Johnnybits Blog Agent** scheduled task on demand. Review the draft in `/admin/blog-agent/drafts`.
-5. After three drafts in a row pass your review, give the task a schedule (suggested: Tuesday and Friday mornings,
+3. Attach the connector to the **Johnnybits Blog Agent** scheduled task (created 2026-11-03 with no schedule):
+   a scheduled task only gets the connectors that existed when it was created. Least privilege: give it only
+   Johnnybits Blog. Without it the task replies "Johnnybits Blog connector not available in this session" and stops.
+4. Add a few keywords in `/admin/blog-agent/queue`.
+5. Run the **Johnnybits Blog Agent** scheduled task on demand. Review the draft in `/admin/blog-agent/drafts`.
+6. After three drafts in a row pass your review, give the task a schedule (suggested: Tuesday and Friday mornings,
    one article per run).
-6. Optional, monthly: the **cluster planner** task below refills the queue.
+7. Optional, monthly: the **cluster planner** task below refills the queue.
 
 ## Task prompt: Johnnybits Blog Agent
 
