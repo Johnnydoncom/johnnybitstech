@@ -158,8 +158,8 @@ export const claimNextKeyword = defineTool({
   title: "Claim the next keyword and start a run",
   description:
     "Atomically claims the highest-priority queued keyword and creates its pipeline run. " +
-    `If this connection already has a running run (active in the last ${STALE_RUN_HOURS}h) it is returned instead (status "resumed"), ` +
-    "so a crashed session can continue. Returns status \"empty\" when nothing is queued: stop and report.",
+    `If this connection already has a running run (active in the last ${STALE_RUN_HOURS}h), or an admin resumed a stopped run, it is ` +
+    "returned instead (status \"resumed\"), so work continues from the saved stages. Returns status \"empty\" when nothing is queued: stop and report.",
   input: z.object({ resume_open_run: z.boolean().default(true) }),
   output: claimOutput,
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
@@ -167,12 +167,23 @@ export const claimNextKeyword = defineTool({
     await releaseStale(ctx.db);
 
     if (input.resume_open_run) {
+      // This connection's own open run first; otherwise adopt a run an admin resumed (client_id NULL). Adoption is
+      // atomic (row lock + SKIP LOCKED), so two sessions never continue the same run.
       const [open] = rowsOf<{ id: string; keyword_id: string; keyword: string; priority: number | null; notes: string | null }>(
         await ctx.db.execute(sql`
-          SELECT r.id, r.keyword_id, r.keyword, k.priority, k.notes
-          FROM pipeline_runs r LEFT JOIN keyword_queue k ON k.id = r.keyword_id
-          WHERE r.status = 'running' AND r.client_id = ${ctx.clientId}
-          ORDER BY r.started_at DESC LIMIT 1
+          WITH target AS (
+            SELECT id FROM pipeline_runs
+            WHERE status = 'running' AND (client_id = ${ctx.clientId} OR client_id IS NULL)
+            ORDER BY (client_id IS NULL), started_at DESC
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+          ), adopted AS (
+            UPDATE pipeline_runs r SET client_id = ${ctx.clientId}, heartbeat_at = now()
+            FROM target WHERE r.id = target.id
+            RETURNING r.id, r.keyword_id, r.keyword
+          )
+          SELECT a.id, a.keyword_id, a.keyword, k.priority, k.notes
+          FROM adopted a LEFT JOIN keyword_queue k ON k.id = a.keyword_id
         `),
       );
       if (open) {
@@ -182,7 +193,7 @@ export const claimNextKeyword = defineTool({
           run_id: open.id,
           keyword: { id: open.keyword_id, keyword: open.keyword, priority: open.priority ?? 0, notes: open.notes },
           next_stage: nextStage(saved, await loadRun(ctx.db, open.id)),
-          message: "Resuming the open run for this connection. Call get_run to load its saved stages.",
+          message: "Resuming an open run. Call get_run to load its saved stages and the reason it stopped (run.error), then continue from next_stage.",
         };
       }
     }

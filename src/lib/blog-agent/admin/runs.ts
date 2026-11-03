@@ -62,6 +62,40 @@ export async function abandonRun(db: Db, id: string, adminEmail: string) {
   }
 }
 
+/**
+ * Puts a stopped run (needs human, or abandoned) back to running so the next agent session continues from its saved
+ * stages instead of starting over. The run is released from its old connection (client_id NULL) so any session of
+ * the connector can adopt it, and its keyword is claimed for it again. Refused if the run already produced an article,
+ * or the keyword is done or being written by another run.
+ */
+export async function resumeRun(db: Db, id: string, adminEmail: string) {
+  const [row] = rowsOf<{ id: string; keyword_id: string | null }>(
+    await db.execute(sql`
+      WITH resumed AS (
+        UPDATE pipeline_runs r
+        SET status = 'running', finished_at = NULL, heartbeat_at = now(), client_id = NULL,
+            error = coalesce(r.error, '{}'::jsonb) || jsonb_build_object('resumed_by', ${adminEmail}::text, 'resumed_at', now())
+        WHERE r.id = ${id} AND r.status IN ('needs_human', 'abandoned') AND r.article_id IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM keyword_queue k
+            WHERE k.id = r.keyword_id AND (k.status = 'done' OR (k.status = 'claimed' AND k.claimed_by_run IS DISTINCT FROM r.id))
+          )
+          AND NOT EXISTS (SELECT 1 FROM pipeline_runs o WHERE o.keyword_id = r.keyword_id AND o.id <> r.id AND o.status = 'running')
+        RETURNING r.id, r.keyword_id
+      ), claim AS (
+        UPDATE keyword_queue k SET status = 'claimed', claimed_at = now(), claimed_by_run = resumed.id
+        FROM resumed WHERE k.id = resumed.keyword_id
+        RETURNING k.id
+      )
+      SELECT id, keyword_id FROM resumed
+    `),
+  );
+  if (!row) {
+    throw new AdminError("Only a stopped run without a draft can be resumed, and not while its keyword is done or being written by another run");
+  }
+  return row;
+}
+
 export async function overviewCounts(db: Db) {
   const [row] = rowsOf<Record<string, number>>(
     await db.execute(sql`

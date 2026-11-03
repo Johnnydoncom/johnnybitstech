@@ -11,7 +11,7 @@ import {
   AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, setImagePrompt, unpublishArticle, updateDraft,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
-import { abandonRun } from "@/lib/blog-agent/admin/runs";
+import { abandonRun, resumeRun } from "@/lib/blog-agent/admin/runs";
 import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
 import { parseAgentEnv } from "@/lib/blog-agent/env";
 import { generateFeaturedImage, imageGenConfig } from "@/lib/blog-agent/image-gen";
@@ -113,6 +113,15 @@ export async function abandonRunAction(fd: FormData) {
     await abandonRun(getDb(), r, admin.email);
     await log(admin, "run.abandon", "pipeline_run", r);
     return "Run abandoned; re-queue its keyword if you want another attempt";
+  });
+}
+
+export async function resumeRunAction(fd: FormData) {
+  const r = id(fd);
+  await attempt(`${BASE}/runs/${r}`, "run.resume", async (admin) => {
+    await resumeRun(getDb(), r, admin.email);
+    await log(admin, "run.resume", "pipeline_run", r);
+    return "Run resumed: the next agent session (scheduled, or Run now) continues from the saved stages";
   });
 }
 

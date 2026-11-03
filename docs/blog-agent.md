@@ -226,7 +226,7 @@ password, then read `audit_log` and `mcp_call_log` for the period (`/admin/blog-
 
 | Symptom | What to do |
 |---|---|
-| Run `needs_human` | Open it in `/admin/blog-agent/runs`; the report says which check failed. Fix the cause (e.g. add a source, change the keyword), then **Re-queue keyword**. The next run starts clean |
+| Run `needs_human` | Open it in `/admin/blog-agent/runs`; the report says which check failed and what to fix. **Resume run** keeps all saved stages: the next agent session (scheduled or Run now) adopts the run, reads the report and continues from where it stopped. Or **Abandon run** and **Re-queue keyword** to start clean |
 | Claude stopped mid-run (timeout, closed session) | Nothing: `claim_next_keyword` on the same connection resumes the open run, and `get_run` says the next stage. Stages already saved are kept |
 | A stage is reported stale | An earlier stage was re-saved. Redo the stages `get_run` lists as stale; `create_draft` refuses until they match the current draft |
 | Run stuck in `running` | It is abandoned automatically after 6 h without activity; to free the keyword now, **Abandon** it on the run page |

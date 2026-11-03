@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { getRunDetail } from "@/lib/blog-agent/admin/runs";
-import { abandonRunAction, requeueKeywordAction } from "../../actions";
+import { abandonRunAction, requeueKeywordAction, resumeRunAction } from "../../actions";
 import { ConfirmButton } from "../../_components/ConfirmButton";
 import { Button } from "@/components/ui/button";
 import { AgentHeader, Card, Notice, StatusBadge, fmt, tableHead, td, th } from "../../_components/ui";
@@ -48,6 +48,12 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
           </dl>
           <div className="mt-4 flex flex-wrap gap-2">
             {run.article_id && <Button asChild size="sm"><Link href={`/admin/blog-agent/drafts/${run.article_id}`}>Review draft</Link></Button>}
+            {(run.status === "needs_human" || run.status === "abandoned") && !run.article_id && (
+              <form action={resumeRunAction}>
+                <input type="hidden" name="id" value={run.id} />
+                <ConfirmButton size="sm" message="Resume this run? The next agent session continues from its saved stages, applying the fixes in the report.">Resume run</ConfirmButton>
+              </form>
+            )}
             {(run.status === "running" || run.status === "needs_human") && (
               <form action={abandonRunAction}><input type="hidden" name="id" value={run.id} /><ConfirmButton size="sm" variant="outline" message="Abandon this run?">Abandon run</ConfirmButton></form>
             )}
@@ -62,7 +68,7 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
 
         {error && (
           <Card className="lg:col-span-2 border-destructive/30">
-            <h2 className="font-semibold text-destructive">Why it stopped</h2>
+            <h2 className="font-semibold text-destructive">{run.status === "running" ? "Why it stopped before it was resumed" : "Why it stopped"}</h2>
             <p className="mt-2 text-sm">{error.reason ?? error.message}</p>
             {error.recommendation && <p className="mt-2 text-sm"><span className="font-medium">Recommendation: </span>{error.recommendation}</p>}
             {error.details && <pre className="mt-3 max-h-60 overflow-auto rounded-lg bg-muted p-3 text-xs whitespace-pre-wrap">{error.details}</pre>}

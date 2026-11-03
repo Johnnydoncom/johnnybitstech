@@ -9,9 +9,10 @@ three skills live in `docs/cowork/skills/` and are saved to the Claude account f
    URL `https://johnnybits.com/api/mcp` → Connect → log in to the admin → Approve.
 2. Save the three skills: `johnnybits-blog-research` (S1–S4), `johnnybits-blog-writing` (S5–S8) and
    `johnnybits-blog-qa` (S9, used by the independent reviewer).
-3. Attach the connector to the **Johnnybits Blog Agent** scheduled task (created 2026-11-03 with no schedule):
-   a scheduled task only gets the connectors that existed when it was created. Least privilege: give it only
-   Johnnybits Blog. Without it the task replies "Johnnybits Blog connector not available in this session" and stops.
+3. The **Johnnybits Blog Agent** scheduled task must be created *after* the connector exists: a scheduled task only
+   gets the connectors that existed when it was created (it cannot be added later). The current task was created on
+   2026-11-03 at 18:03 with the connector attached. Without it the task replies "Johnnybits Blog connector not
+   available in this session" and stops.
 4. Add a few keywords in `/admin/blog-agent/queue`.
 5. Run the **Johnnybits Blog Agent** scheduled task on demand. Review the draft in `/admin/blog-agent/drafts`.
 6. After three drafts in a row pass your review, give the task a schedule (suggested: Tuesday and Friday mornings,
@@ -42,7 +43,9 @@ RULES
 WORKFLOW
 1. Call get_brand_context once and reuse it. Call claim_next_keyword.
    - "empty": reply "No keywords queued" and stop.
-   - "resumed": call get_run and continue from its next_stage, redoing any stale_stages first.
+   - "resumed": call get_run and continue from its next_stage, redoing any stale_stages first. If run.error says
+     why an earlier session stopped, use its recommendation. If next_stage is revise_draft_after_qa, apply every
+     exact_revision in the latest s9_qa (step 9), then continue; this session gets its own 2 revision loops.
    - "claimed": it already created the run; keep its run_id for every call.
 2. S1 keyword intelligence → save s1_keyword. Call check_cannibalization(run_id):
    "block" → report_failure recommending an update to the matching article, then stop.
