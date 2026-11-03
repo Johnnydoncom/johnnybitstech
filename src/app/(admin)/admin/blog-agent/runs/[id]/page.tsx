@@ -28,7 +28,9 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
   const detail = await getRunDetail(getDb(), id);
   if (!detail) notFound();
   const { run, stages, calls } = detail;
-  const error = run.error as { reason?: string; details?: string; recommendation?: string; message?: string } | null;
+  const error = run.error as { reason?: string; details?: string; recommendation?: string; message?: string; resumed_at?: string } | null;
+  // After a resume the stop report stays for the record; once the run succeeds it is history, not a problem.
+  const resolved = Boolean(error?.resumed_at) && run.status === "draft_created";
   const cannibalization = run.cannibalization as { verdict?: string; guidance?: string; matches?: { url: string | null; title: string; status: string; reason: string }[] } | null;
 
   return (
@@ -67,8 +69,10 @@ export default async function RunDetailPage({ params, searchParams }: { params: 
         </Card>
 
         {error && (
-          <Card className="lg:col-span-2 border-destructive/30">
-            <h2 className="font-semibold text-destructive">{run.status === "running" ? "Why it stopped before it was resumed" : "Why it stopped"}</h2>
+          <Card className={`lg:col-span-2 ${resolved ? "" : "border-destructive/30"}`}>
+            <h2 className={`font-semibold ${resolved ? "" : "text-destructive"}`}>
+              {resolved ? "Earlier stop (resolved by resuming)" : run.status === "running" ? "Why it stopped before it was resumed" : "Why it stopped"}
+            </h2>
             <p className="mt-2 text-sm">{error.reason ?? error.message}</p>
             {error.recommendation && <p className="mt-2 text-sm"><span className="font-medium">Recommendation: </span>{error.recommendation}</p>}
             {error.details && <pre className="mt-3 max-h-60 overflow-auto rounded-lg bg-muted p-3 text-xs whitespace-pre-wrap">{error.details}</pre>}
