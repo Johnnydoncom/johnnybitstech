@@ -14,8 +14,8 @@ import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } 
 import { abandonRun, resumeRun } from "@/lib/blog-agent/admin/runs";
 import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
 import { parseAgentEnv } from "@/lib/blog-agent/env";
-import { generateFeaturedImage, imageGenConfig } from "@/lib/blog-agent/image-gen";
-import { altFromStockPhoto, downloadStockPhoto, stockPhotoConfig } from "@/lib/blog-agent/stock-photos";
+import { cropToFeatured, generateFeaturedImage, imageGenConfig } from "@/lib/blog-agent/image-gen";
+import { altFromStockPhoto, downloadStockPhoto, PROVIDER_INFO, stockPhotoConfig } from "@/lib/blog-agent/stock-photos";
 import { ImageError, optimizeImage, type OptimizedImage } from "@/lib/blog-agent/images";
 import { BLOB_NOT_CONFIGURED, isBlobStorageConfigured } from "@/lib/blob-storage";
 import { rateLimit } from "@/lib/rate-limit";
@@ -131,20 +131,21 @@ export async function chooseStockPhotoAction(fd: FormData) {
   const a = id(fd);
   await attempt(draftPage(a), "article.image_stock", async (admin) => {
     const config = stockPhotoConfig();
-    if (!config) throw new AdminError("Stock photos are not set up: add PEXELS_API_KEY (free at pexels.com/api) and redeploy");
+    if (!config) throw new AdminError("Stock photos are not set up: add PIXABAY_API_KEY (free at pixabay.com/api/docs) or PEXELS_API_KEY, then redeploy");
     requireBlobStorage();
     const article = await getArticle(getDb(), a);
     if (!article) throw new AdminError("Article not found");
     const photoId = Number(field(fd, "photo_id"));
     const { data, photo } = await downloadStockPhoto(photoId, config);
-    const image = await optimizeImage(data);
+    const image = await optimizeImage(await cropToFeatured(data));
     await storeFeaturedImage(article, image);
     const alt = altFromStockPhoto(photo);
+    const library = PROVIDER_INFO[photo.provider].name;
     if (alt.length >= 5) await setFeaturedImageAlt(getDb(), a, alt);
     await log(admin, "article.image_stock", "article", a, {
-      source: "pexels", photo_id: photo.id, photo_url: photo.pageUrl, photographer: photo.photographer, bytes: image.bytes,
+      source: photo.provider, photo_id: photo.id, photo_url: photo.pageUrl, photographer: photo.photographer, bytes: image.bytes,
     });
-    return `Photo by ${photo.photographer} on Pexels saved as WebP (${Math.round(image.bytes / 1024)} KB).${alt.length >= 5 ? " Alt text updated from Pexels: check it describes the photo." : " Write alt text that describes the photo."}`;
+    return `Photo by ${photo.photographer} on ${library} saved as WebP (${Math.round(image.bytes / 1024)} KB, ${image.width}×${image.height}).${alt.length >= 5 ? ` Alt text updated from ${library}: check it describes the photo.` : " Check the alt text describes this photo."}`;
   });
 }
 

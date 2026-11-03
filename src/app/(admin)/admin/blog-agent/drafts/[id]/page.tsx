@@ -10,7 +10,7 @@ import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { getArticle, listInternalLinks, prePublishCheck } from "@/lib/blog-agent/admin/drafts";
 import { imageGenConfig } from "@/lib/blog-agent/image-gen";
 import { ImageError } from "@/lib/blog-agent/images";
-import { searchStockPhotos, stockPhotoConfig, type StockPhoto } from "@/lib/blog-agent/stock-photos";
+import { PROVIDER_INFO, searchStockPhotos, stockPhotoConfig, type StockPhoto } from "@/lib/blog-agent/stock-photos";
 import { renderArticleHtml } from "@/lib/blog/render";
 import { deleteArticleAction, editLinkAction, generateImageAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction, chooseStockPhotoAction } from "../../actions";
 import { ConfirmButton } from "../../_components/ConfirmButton";
@@ -237,21 +237,21 @@ export default async function DraftReviewPage({ params, searchParams }: { params
                       <form key={photo.id} action={chooseStockPhotoAction} className="space-y-1">
                         <input type="hidden" name="id" value={a.id} />
                         <input type="hidden" name="photo_id" value={photo.id} />
-                        {/* eslint-disable-next-line @next/next/no-img-element -- Pexels thumbnail */}
+                        {/* eslint-disable-next-line @next/next/no-img-element -- stock-photo thumbnail */}
                         <img src={photo.thumbUrl} alt={photo.alt || "Stock photo"} loading="lazy" className="aspect-[1200/627] w-full rounded-md border border-border object-cover" />
                         <PendingButton size="sm" variant="outline" className="w-full" pendingLabel="Saving…" confirmMessage={a.featured_image ? "Replace the current featured image with this photo?" : undefined}>
                           Use this photo
                         </PendingButton>
                         <p className="truncate text-[11px] text-muted-foreground">
                           Photo by <a href={photo.photographerUrl} target="_blank" rel="noopener noreferrer" className="underline">{photo.photographer}</a> on{" "}
-                          <a href={photo.pageUrl} target="_blank" rel="noopener noreferrer" className="underline">Pexels</a>
+                          <a href={photo.pageUrl} target="_blank" rel="noopener noreferrer" className="underline">{PROVIDER_INFO[photo.provider].name}</a>
                         </p>
                       </form>
                     ))}
                   </div>
                 )}
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="underline">Photos provided by Pexels</a> · free to use commercially
+                  <a href={PROVIDER_INFO[stockConfig.provider].home} target="_blank" rel="noopener noreferrer" className="underline">{PROVIDER_INFO[stockConfig.provider].credit}</a> · free to use commercially
                 </p>
               </div>
             )}

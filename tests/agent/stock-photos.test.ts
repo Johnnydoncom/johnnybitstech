@@ -3,7 +3,8 @@ import sharp from "sharp";
 import { ImageError } from "@/lib/blog-agent/images";
 import { altFromStockPhoto, downloadStockPhoto, searchStockPhotos, stockPhotoConfig, type StockPhoto } from "@/lib/blog-agent/stock-photos";
 
-const config = { apiKey: "pexels-test-key" };
+const config = { provider: "pexels" as const, apiKey: "pexels-test-key" };
+const pixabay = { provider: "pixabay" as const, apiKey: "pixabay-test-key" };
 const photo = (id: number, extra: Record<string, unknown> = {}) => ({
   id, width: 6000, height: 4000, url: `https://www.pexels.com/photo/office-${id}/`, photographer: "Ada Obi",
   photographer_url: "https://www.pexels.com/@ada", alt: "Woman working on a laptop in a bright office",
@@ -31,10 +32,12 @@ async function imageError(p: Promise<unknown>) {
 }
 
 describe("stock photos (Pexels)", () => {
-  it("is off without a key", () => {
+  it("is off without a key, and prefers Pexels when both keys are set", () => {
     expect(stockPhotoConfig({})).toBeNull();
     expect(stockPhotoConfig({ PEXELS_API_KEY: "  " })).toBeNull();
-    expect(stockPhotoConfig({ PEXELS_API_KEY: "abc" })).toEqual({ apiKey: "abc" });
+    expect(stockPhotoConfig({ PEXELS_API_KEY: "abc" })).toEqual({ provider: "pexels", apiKey: "abc" });
+    expect(stockPhotoConfig({ PIXABAY_API_KEY: "xyz" })).toEqual({ provider: "pixabay", apiKey: "xyz" });
+    expect(stockPhotoConfig({ PEXELS_API_KEY: "abc", PIXABAY_API_KEY: "xyz" })?.provider).toBe("pexels");
   });
 
   it("searches landscape photos with the key in the Authorization header", async () => {
@@ -65,7 +68,7 @@ describe("stock photos (Pexels)", () => {
   it("explains API failures", async () => {
     const run = (status: number) => imageError(searchStockPhotos("office", config, fakeFetch(() => json(status, {})).impl));
     expect(await run(401)).toMatch(/PEXELS_API_KEY/);
-    expect(await run(429)).toMatch(/hourly limit/);
+    expect(await run(429)).toMatch(/rate limit/);
     expect(await run(500)).toMatch(/error \(500\)/);
     expect(await imageError(searchStockPhotos("x", config))).toMatch(/at least two characters/);
     expect(await imageError(downloadStockPhoto(9, config, fakeFetch(() => json(404, {})).impl))).toMatch(/no longer exists/);
@@ -74,10 +77,50 @@ describe("stock photos (Pexels)", () => {
   });
 
   it("trims long Pexels descriptions to the 125-character alt limit at a word boundary", () => {
-    const base: StockPhoto = { id: 1, alt: "", photographer: "", photographerUrl: "", pageUrl: "", thumbUrl: "" };
+    const base: StockPhoto = { provider: "pexels", id: 1, alt: "", photographer: "", photographerUrl: "", pageUrl: "", thumbUrl: "" };
     expect(altFromStockPhoto({ ...base, alt: "  A   shop   counter " })).toBe("A shop counter");
     const long = altFromStockPhoto({ ...base, alt: "word ".repeat(60) });
     expect(long.length).toBeLessThanOrEqual(125);
     expect(long.endsWith("word")).toBe(true);
+  });
+});
+
+describe("stock photos (Pixabay)", () => {
+  const hit = (id: number, extra: Record<string, unknown> = {}) => ({
+    id, pageURL: `https://pixabay.com/photos/office-laptop-${id}/`, type: "photo", tags: "office, laptop, business",
+    previewURL: `https://cdn.pixabay.com/photo/p/${id}_150.jpg`, webformatURL: `https://pixabay.com/get/${id}_640.jpg`,
+    largeImageURL: `https://pixabay.com/get/${id}_1280.jpg`, user: "chidi", user_id: 42, ...extra,
+  });
+
+  it("searches real photos only (no illustrations), landscape, safe, at least 1200 px wide, cached for under 24 h", async () => {
+    const { impl, calls } = fakeFetch(() => json(200, { total: 1, totalHits: 1, hits: [hit(5)] }));
+    const found = await searchStockPhotos("market stall Lagos", pixabay, impl);
+    expect(found).toEqual([{
+      provider: "pixabay", id: 5, alt: "", photographer: "chidi", photographerUrl: "https://pixabay.com/users/chidi-42/",
+      pageUrl: "https://pixabay.com/photos/office-laptop-5/", thumbUrl: "https://pixabay.com/get/5_640.jpg",
+    }]);
+    const url = new URL(calls[0].url);
+    expect(url.origin + url.pathname).toBe("https://pixabay.com/api/");
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ key: "pixabay-test-key", q: "market stall Lagos", image_type: "photo", orientation: "horizontal", min_width: "1200", safesearch: "true" });
+    expect((calls[0].init as { next?: { revalidate: number } }).next?.revalidate).toBeLessThan(24 * 3600);
+  });
+
+  it("downloads the large image by id from Pixabay's hosts only", async () => {
+    const jpeg = await sharp({ create: { width: 1280, height: 853, channels: 3, background: "#864" } }).jpeg().toBuffer();
+    const ok = fakeFetch((url) => (url.startsWith("https://pixabay.com/api/") ? json(200, { hits: [hit(9)] }) : new Response(new Uint8Array(jpeg))));
+    const { data, photo } = await downloadStockPhoto(9, pixabay, ok.impl);
+    expect(data.length).toBe(jpeg.length);
+    expect(photo.photographer).toBe("chidi");
+    expect(new URL(ok.calls[0].url).searchParams.get("id")).toBe("9");
+    expect(ok.calls[1].url).toBe("https://pixabay.com/get/9_1280.jpg");
+
+    const evil = fakeFetch(() => json(200, { hits: [hit(9, { largeImageURL: "https://pixabay.com.evil.example/x.jpg" })] }));
+    expect(await imageError(downloadStockPhoto(9, pixabay, evil.impl))).toMatch(/Unexpected image location/);
+    expect(await imageError(downloadStockPhoto(9, pixabay, fakeFetch(() => json(200, { hits: [] })).impl))).toMatch(/no longer exists/);
+  });
+
+  it("explains a bad key, which Pixabay reports as HTTP 400 with text", async () => {
+    const bad = fakeFetch(() => new Response("[ERROR 400] Invalid or missing API key", { status: 400 }));
+    expect(await imageError(searchStockPhotos("office", pixabay, bad.impl))).toMatch(/PIXABAY_API_KEY/);
   });
 });

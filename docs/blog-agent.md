@@ -157,11 +157,14 @@ only rejected articles can be deleted.
 photograph (drawing-style words such as "flat illustration" are rewritten; text, logos, brands and watermarks are
 excluded), centre-crops the 1024 × 1024 result to 1024 × 538 (the 1.91:1 social-card shape) and saves it like an upload.
 
-**Stock-photo fallback (optional, free):** with `PEXELS_API_KEY` set, the review page can search Pexels for real
-landscape photographs and **Use this photo**: the 1200 × 627 crop is downloaded (from images.pexels.com only),
-saved as WebP under 400 KB, and its Pexels description becomes the alt text (check it). The picker links to Pexels
-and credits each photographer as Pexels' API guidelines ask; the photo, photographer and Pexels page are recorded in
-`audit_log`. Pexels photos are free for commercial use. Get a key at pexels.com/api, add it in Vercel, redeploy. Cost: free within Cloudflare's 10,000 Neurons a day (about 60
+**Stock-photo fallback (optional, free):** with `PIXABAY_API_KEY` or `PEXELS_API_KEY` set (Pexels wins if both), the
+review page can search real landscape photographs (Pixabay: photos only, safe search, at least 1200 px wide) and
+**Use this photo**: the image is downloaded from the library's own host only, centre-cropped to 1.91:1, saved as WebP
+under 400 KB, and (Pexels) its description becomes the alt text. Both licences allow commercial use. The picker
+credits the library and each photographer as their API terms ask; Pixabay search responses are cached for up to 24 h
+as its terms require, and photos are stored on our side (Pixabay forbids hotlinking). The photo, photographer and
+source page are recorded in `audit_log`. Pexels paused new API keys in November 2026; Pixabay keys are shown on
+pixabay.com/api/docs once logged in. Add the key in Vercel, then redeploy. Cost: free within Cloudflare's 10,000 Neurons a day (about 60
 per image); `IMAGE_GEN_DAILY_LIMIT` (20) caps clicks so the allowance is never exhausted. Gemini's API has no free
 tier for image models, so it is not used; you can still make an image free in the Gemini app and upload it.
 Setup: Cloudflare dashboard → Workers AI → **Use REST API** → copy the Account ID and create an API token
@@ -277,7 +280,7 @@ Environment Variables.
 | `CRON_SECRET` | Yes (Phase 5) | Authenticates the daily maintenance cron |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_TOKEN` | No | Free featured-image generation (Workers AI); empty = upload only |
 | `IMAGE_GEN_DAILY_LIMIT` | No | Generated images per 24 h (20) |
-| `PEXELS_API_KEY` | No | Real stock-photo search on the review page; empty = no stock search |
+| `PIXABAY_API_KEY` / `PEXELS_API_KEY` | No | Real stock-photo search on the review page (either; Pexels wins if both); empty = no stock search |
 | `OAUTH_ISSUER` | No | Overrides the OAuth issuer (local testing: `http://localhost:3000`) |
 | `OAUTH_ALLOWED_CLIENT_HOSTS` | No | CIMD hosts, default `claude.ai,claude.com` |
 | `MCP_STATIC_TOKEN` | No | Fixed bearer token for header-auth connectors; empty = OAuth only |
