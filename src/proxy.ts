@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { getSessionKey } from "@/lib/session-key";
 
-const secretKey = process.env.SESSION_SECRET || "fallback-secret-change-me";
-const encodedKey = new TextEncoder().encode(secretKey);
+function toLogin(request: NextRequest) {
+  const url = new URL("/admin/login", request.url);
+  const next = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  if (next !== "/admin") url.searchParams.set("next", next);
+  return NextResponse.redirect(url);
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -24,16 +29,17 @@ export async function proxy(request: NextRequest) {
   }
 
   const session = request.cookies.get("session")?.value;
+  const encodedKey = getSessionKey();
 
-  if (!session) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  if (!session || !encodedKey) {
+    return toLogin(request);
   }
 
   try {
     await jwtVerify(session, encodedKey, { algorithms: ["HS256"] });
     return NextResponse.next();
   } catch {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return toLogin(request);
   }
 }
 

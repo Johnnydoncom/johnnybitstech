@@ -62,9 +62,6 @@ export const metadata: Metadata = {
     description: "Johnnybits Technology is a premium digital agency specializing in web design, development, and digital marketing solutions.",
     images: ['/assets/johnnybits-logo.png'], // Add this image to your public folder
   },
-  alternates: {
-    canonical: SITE_URL,
-  },
   keywords: [
     "Johnnybits Technology",
     "web design Nigeria",

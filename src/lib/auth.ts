@@ -3,9 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { query } from "@/lib/db";
-
-const secretKey = process.env.SESSION_SECRET || "fallback-secret-change-me";
-const encodedKey = new TextEncoder().encode(secretKey);
+import { getSessionKey } from "@/lib/session-key";
 
 export type SessionPayload = {
   email: string;
@@ -13,6 +11,8 @@ export type SessionPayload = {
 };
 
 export async function encrypt(payload: SessionPayload) {
+  const encodedKey = getSessionKey();
+  if (!encodedKey) throw new Error("SESSION_SECRET is not configured");
   return new SignJWT({ ...payload, expiresAt: payload.expiresAt.toISOString() })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -21,6 +21,8 @@ export async function encrypt(payload: SessionPayload) {
 }
 
 export async function decrypt(session: string | undefined = "") {
+  const encodedKey = getSessionKey();
+  if (!encodedKey || !session) return null;
   try {
     const { payload } = await jwtVerify(session, encodedKey, {
       algorithms: ["HS256"],

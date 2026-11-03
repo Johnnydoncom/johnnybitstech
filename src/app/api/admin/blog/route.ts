@@ -1,16 +1,21 @@
-import { verifySession } from "@/lib/auth";
-import { query, execute } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { desc, eq } from "drizzle-orm";
+import { verifySession } from "@/lib/auth";
+import { getDb } from "@/db/client";
+import { articles, authors } from "@/db/schema";
+import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
+import { articleToLegacyPost, isUniqueViolation, legacyInputToArticle, legacyPostInput } from "@/lib/blog/admin";
+import { revalidateBlog } from "@/lib/blog/revalidate";
+import { isSameOrigin } from "@/lib/security/same-origin";
 
 export async function GET() {
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const posts = await query(
-      "SELECT id, title, slug, excerpt, tag, published, created_at, updated_at FROM blog_posts ORDER BY created_at DESC"
-    );
-    return NextResponse.json(posts);
+    const rows = await getDb().select().from(articles).orderBy(desc(articles.createdAt));
+    // The list view does not need bodies; dropping them keeps the payload small.
+    return NextResponse.json(rows.map((a) => ({ ...articleToLegacyPost(a), content: undefined })));
   } catch (error) {
     console.error("Blog fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 });
@@ -18,27 +23,36 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const session = await verifySession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const parsed = legacyPostInput.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid input" }, { status: 400 });
+  }
+
   try {
-    const body = await request.json();
-    const { title, slug, excerpt, content, tag, published, featured_image, meta_title, meta_description } = body;
+    const now = new Date();
+    const [author] = await getDb()
+      .select({ id: authors.id })
+      .from(authors)
+      .where(eq(authors.slug, getBrandContext().defaultAuthorSlug))
+      .limit(1);
+    const [created] = await getDb()
+      .insert(articles)
+      .values({
+        ...legacyInputToArticle(parsed.data),
+        status: parsed.data.published ? "published" : "draft",
+        publishedAt: parsed.data.published ? now : null,
+        authorId: author?.id ?? null,
+      })
+      .returning({ id: articles.id, slug: articles.slug });
 
-    if (!title || !slug) {
-      return NextResponse.json({ error: "Title and slug are required" }, { status: 400 });
-    }
-
-    const result = await execute(
-      `INSERT INTO blog_posts (title, slug, excerpt, content, tag, published, featured_image, meta_title, meta_description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-      [title, slug, excerpt || null, content || null, tag || null, published ? 1 : 0, featured_image || null, meta_title || null, meta_description || null]
-    );
-
-    return NextResponse.json({ id: result.insertId, message: "Post created" }, { status: 201 });
+    if (parsed.data.published) revalidateBlog([created.slug]);
+    return NextResponse.json({ id: created.id, message: "Post created" }, { status: 201 });
   } catch (error: unknown) {
-    const err = error as { code?: string };
-    if (err.code === "23505") {
+    if (isUniqueViolation(error)) {
       return NextResponse.json({ error: "A post with this slug already exists" }, { status: 409 });
     }
     console.error("Blog create error:", error);

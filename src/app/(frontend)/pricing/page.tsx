@@ -6,6 +6,7 @@ import { constructMetadata } from "@/lib/seo";
 export const metadata = constructMetadata({
   title: "Pricing | Johnnybits Technology",
   description: "Simple, transparent pricing for web design, development, SEO and digital marketing. Pick a package and we'll tailor it to your goals.",
+  canonicalUrl: "/pricing",
 });
 
 const TIERS = [

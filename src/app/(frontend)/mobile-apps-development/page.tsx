@@ -9,6 +9,7 @@ import { SITE_URL } from "@/config/site";
 export const metadata = constructMetadata({
   title: "Mobile App Development | Johnnybits Technology",
   description: "Beautiful Android & iOS apps for startups and enterprises. React Native, Flutter, Native — we ship polished, fully-functional mobile apps.",
+  canonicalUrl: "/mobile-apps-development",
 });
 
 const PAGE_URL = `${SITE_URL}/mobile-apps-development`;

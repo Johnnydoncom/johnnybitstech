@@ -487,3 +487,49 @@
   border-top: 1px solid hsl(var(--border));
   margin: 2.5em 0;
 }
+
+/* Tables, footnotes and anchored headings inside article bodies (blog agent articles). */
+.blog-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1.75em 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.blog-content th,
+.blog-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.65em 0.9em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.blog-content thead th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+.blog-content tbody tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.4);
+}
+
+.blog-content h2[id],
+.blog-content h3[id] {
+  scroll-margin-top: 6rem;
+}
+
+.blog-content sup a {
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.blog-content section[data-footnotes] {
+  margin-top: 3em;
+  padding-top: 1.5em;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 0.9rem;
+  color: hsl(var(--muted-foreground));
+}

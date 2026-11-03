@@ -2,6 +2,7 @@
 
 import { createSession, verifyCredentials } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { safeAdminNext } from "@/lib/safe-next";
 
 export async function loginAction(
   _prevState: { error?: string } | undefined,
@@ -21,5 +22,5 @@ export async function loginAction(
   }
 
   await createSession(email);
-  redirect("/admin");
+  redirect(safeAdminNext(formData.get("next")));
 }

@@ -1,3 +1,15 @@
+# Johnnybits website
+
+Next.js 16 (App Router, TypeScript) site for [johnnybits.com](https://johnnybits.com), on Neon Postgres and Vercel.
+
+- **Blog agent** (Claude writes drafts through an MCP connector; a human reviews and publishes in `/admin/blog-agent`):
+  runbook in [`docs/blog-agent.md`](docs/blog-agent.md), design in [`docs/blog-agent-plan.md`](docs/blog-agent-plan.md).
+- Environment variables: [`.env.example`](.env.example) and the table in the runbook.
+- Checks: `npm run typecheck`, `npm run lint`, `npm run test` (in-memory Postgres, no network).
+- Database: `npm run db:status`, `npm run db:migrate`, `npm run db:rollback`.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

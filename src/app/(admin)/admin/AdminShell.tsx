@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FileText, Mail, Users, UserCog, Globe, Settings, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, FileText, Mail, Users, UserCog, Globe, Settings, LogOut, Menu, X, Bot } from "lucide-react";
 import { logoutAction } from "./actions";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/blog", label: "Blog", icon: FileText },
+  { href: "/admin/blog-agent", label: "Blog Agent", icon: Bot },
   { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/clients", label: "Clients", icon: Users },
   { href: "/admin/profile", label: "Profile", icon: UserCog },
@@ -34,7 +35,8 @@ function AdminSidebar({ pathname, onClose }: { pathname: string; onClose?: () =>
 
       <nav className="flex-1 space-y-1 p-3">
         {NAV.map((item) => {
-          const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
+          const section = item.href.startsWith("/admin/blog-agent") ? "/admin/blog-agent" : item.href;
+          const active = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${section}/`));
           return (
             <Link
               key={item.href}

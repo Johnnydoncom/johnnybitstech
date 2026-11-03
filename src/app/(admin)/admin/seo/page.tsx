@@ -6,22 +6,22 @@ import { Button } from "@/components/ui/button";
 
 const STATIC_PAGES = [
   { path: "/", label: "Homepage" },
-  { path: "/about", label: "About" },
+  { path: "/about-the-web-design-company", label: "About" },
   { path: "/services", label: "Services" },
-  { path: "/services/web-design", label: "Web Design" },
-  { path: "/services/web-development", label: "Web Development" },
-  { path: "/services/seo-digital-marketing", label: "SEO & Digital Marketing" },
-  { path: "/services/ecommerce", label: "E-commerce" },
-  { path: "/services/mobile-apps", label: "Mobile Apps" },
-  { path: "/services/graphics-design", label: "Graphics Design" },
-  { path: "/services/website-maintenance", label: "Website Maintenance" },
+  { path: "/corporate-web-design-nigeria", label: "Corporate Web Design" },
+  { path: "/web-development-services", label: "Web Development" },
+  { path: "/search-engine-optimization-seo", label: "SEO & Digital Marketing" },
+  { path: "/ecommerce-web-development", label: "E-commerce" },
+  { path: "/mobile-apps-development", label: "Mobile Apps" },
+  { path: "/graphics-design", label: "Graphics Design" },
+  { path: "/website-maintenance-and-support", label: "Website Maintenance" },
   { path: "/pricing", label: "Pricing" },
   { path: "/portfolio", label: "Portfolio" },
   { path: "/blog", label: "Blog" },
   { path: "/contact-us", label: "Contact" },
 ];
 
-type Post = { slug: string; title: string; published: number; updated_at: string };
+type Post = { slug: string; title: string; published: boolean; updated_at: string };
 
 export default function SEOAdminPage() {
   const [posts, setPosts] = useState<Post[]>([]);

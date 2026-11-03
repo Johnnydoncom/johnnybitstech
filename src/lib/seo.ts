@@ -33,7 +33,8 @@ export function constructMetadata({
     openGraph: {
       title,
       description,
-      url: SITE_URL,
+      // og:url must match the page's canonical; omit it rather than point every page at the homepage.
+      ...(canonicalUrl && { url: canonicalUrl }),
       siteName: SITE_NAME,
       images: [
         {
