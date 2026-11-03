@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import RichTextEditor from "@/components/admin/RichTextEditor";
+import FeaturedImageField from "@/components/admin/FeaturedImageField";
 
 export default function NewBlogPostPage() {
   const router = useRouter();
@@ -93,10 +94,7 @@ export default function NewBlogPostPage() {
             <Textarea id="excerpt" name="excerpt" rows={3} className="mt-1.5" placeholder="Short summary for listings..." />
           </div>
 
-          <div>
-            <Label htmlFor="featured_image">Featured Image URL</Label>
-            <Input id="featured_image" name="featured_image" className="mt-1.5" placeholder="/assets/blog/image.png" />
-          </div>
+          <FeaturedImageField />
 
           <div>
             <Label className="mb-2 block">Content (Rich Text)</Label>
