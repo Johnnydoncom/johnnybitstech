@@ -130,8 +130,12 @@ pick, fix that pick, re-save S8 and apply again.
   year or stop words. The server makes it unique.
 - `category`: reuse an existing blog category when one fits, otherwise a short general one (for example Web Design,
   SEO, E-commerce, Mobile Apps). `tags`: 1–8 short Title Case tags.
-- `image_prompt`: a featured-image brief for a designer or image tool: 1200 × 630, no text, no logos, no real
-  people's faces, Johnnybits teal accents. `image_alt` 10–125 characters describing that image.
+- `image_prompt`: describe a **realistic photograph** for the featured image, as a photographer's shot list: the
+  subject, a believable setting (Nigerian where it fits the article), lighting, camera angle and mood, for example
+  "a shop owner at a market stall in Lagos checking orders on a smartphone, morning light, eye level, shallow depth of
+  field". The site renders it as a photorealistic photo, with stock photos as the fallback. Never ask for an
+  illustration, cartoon or 3D render. No text, signs, logos, brands or recognisable real people. `image_alt`
+  10–125 characters describing that photo.
 - `faq`: 2–8 entries, **exactly** the article's FAQ H3 questions and answer paragraphs, verbatim and in order.
 
 **OUTPUT SCHEMA** `{ meta_title, meta_description, og_title?, og_description?, slug_suggestion, category, tags[], image_prompt, image_alt, faq: [{ question, answer }] }`
@@ -139,4 +143,4 @@ pick, fix that pick, re-save S8 and apply again.
 Then call `build_seo_package(run_id)`. Act on its warnings: primary keyword missing from the first 100 words or the
 titles, keyword density above 2.5% (it fails above 3.5%), or Flesch reading ease below 45. To fix, revise S6.
 
-**EXAMPLE** `{"meta_title":"Website Cost in Nigeria: A Practical Price Guide","meta_description":"What a website really costs in Nigeria: one-off and ongoing costs, typical ranges by website type, and how to keep your budget under control.","slug_suggestion":"website-cost-in-nigeria","category":"Web Design","tags":["Website Cost","Web Design","Nigeria"],"image_prompt":"Flat illustration of a laptop showing a website wireframe next to a naira price tag, teal accents, 1200 x 630, no text","image_alt":"Laptop with a website wireframe beside a naira price tag","faq":[{"question":"How much is a basic website in Nigeria?","answer":"It depends on scope, so get itemised quotes and compare them line by line."},{"question":"Why do website prices vary so much?","answer":"Quotes differ in design depth, content and integrations."}]}`
+**EXAMPLE** `{"meta_title":"Website Cost in Nigeria: A Practical Price Guide","meta_description":"What a website really costs in Nigeria: one-off and ongoing costs, typical ranges by website type, and how to keep your budget under control.","slug_suggestion":"website-cost-in-nigeria","category":"Web Design","tags":["Website Cost","Web Design","Nigeria"],"image_prompt":"A small business owner in a Lagos office reviewing a website design on a laptop, a notebook with handwritten costs beside it, soft window light, over-the-shoulder angle, shallow depth of field","image_alt":"Business owner reviewing a website design on a laptop beside a notebook of costs","faq":[{"question":"How much is a basic website in Nigeria?","answer":"It depends on scope, so get itemised quotes and compare them line by line."},{"question":"Why do website prices vary so much?","answer":"Quotes differ in design depth, content and integrations."}]}`

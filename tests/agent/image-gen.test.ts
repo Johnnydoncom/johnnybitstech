@@ -48,10 +48,14 @@ describe("image generation config", () => {
     expect(imageGenConfig({ CLOUDFLARE_ACCOUNT_ID: ACCOUNT, CLOUDFLARE_AI_TOKEN: "t".repeat(40), IMAGE_GEN_DAILY_LIMIT: "5" })?.dailyLimit).toBe(5);
   });
 
-  it("adds the no-text guard rails and stays within the model's 2,048-character limit", () => {
+  it("asks for a photorealistic photograph, rewriting drawing-style prompts, within the 2,048-character limit", () => {
     const p = buildImagePrompt("  Flat illustration of a laptop   with a naira price tag. ");
-    expect(p).toMatch(/^Flat illustration of a laptop with a naira price tag\. Wide landscape/);
-    expect(p).toContain("No text, letters, numbers, logos or watermarks.");
+    expect(p).toMatch(/^Photorealistic editorial stock photograph, as if taken with a professional camera: photograph of a laptop with a naira price tag\. Natural light/);
+    expect(p).not.toMatch(/flat illustration/i);
+    expect(p).toContain("Not an illustration, drawing, cartoon, 3D render or vector art.");
+    expect(p).toContain("No text, letters, numbers, logos, watermarks or recognisable brands.");
+    expect(buildImagePrompt("A vector illustration and some clipart of a shop")).toBe(buildImagePrompt("A photograph and some photograph of a shop"));
+    expect(buildImagePrompt("Lagos street market at golden hour")).toContain("Lagos street market at golden hour.");
     expect(buildImagePrompt("x".repeat(5000)).length).toBeLessThanOrEqual(2048);
   });
 });
@@ -68,6 +72,7 @@ describe("generateFeaturedImage", () => {
     const body = JSON.parse(String(calls[0].init.body));
     expect(body.steps).toBe(8);
     expect(body.prompt).toContain("No text");
+    expect(body.prompt).toMatch(/^Photorealistic/);
 
     expect(out.model).toBe(IMAGE_GEN_MODEL);
     expect(out.bytes).toBeLessThanOrEqual(MAX_IMAGE_BYTES);

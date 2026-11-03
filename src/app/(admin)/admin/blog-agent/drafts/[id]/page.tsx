@@ -9,8 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { getArticle, listInternalLinks, prePublishCheck } from "@/lib/blog-agent/admin/drafts";
 import { imageGenConfig } from "@/lib/blog-agent/image-gen";
+import { ImageError } from "@/lib/blog-agent/images";
+import { searchStockPhotos, stockPhotoConfig, type StockPhoto } from "@/lib/blog-agent/stock-photos";
 import { renderArticleHtml } from "@/lib/blog/render";
-import { deleteArticleAction, editLinkAction, generateImageAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction } from "../../actions";
+import { deleteArticleAction, editLinkAction, generateImageAction, publishAction, rejectAction, restoreAction, saveDraftAction, unpublishAction, uploadImageAction, chooseStockPhotoAction } from "../../actions";
 import { ConfirmButton } from "../../_components/ConfirmButton";
 import { PendingButton } from "../../_components/PendingButton";
 import { AgentHeader, Card, Notice, StatusBadge, fmt } from "../../_components/ui";
@@ -23,7 +25,7 @@ type QaReport = {
   seo_warnings?: { message: string }[];
 };
 
-export default async function DraftReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function DraftReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string; stock?: string }> }) {
   await requireAdmin();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const db = getDb();
@@ -41,6 +43,20 @@ export default async function DraftReviewPage({ params, searchParams }: { params
     canGenerate = imageGenConfig() !== null;
   } catch (error) {
     imageGenProblem = error instanceof Error ? error.message : "Image generation is misconfigured";
+  }
+  // Stock-photo fallback: results are fetched server-side when the admin searches (?stock=…), so the key never
+  // reaches the browser.
+  const stockConfig = editable ? stockPhotoConfig() : null;
+  const stockQuery = (sp.stock ?? "").trim().slice(0, 100);
+  let stockPhotos: StockPhoto[] = [];
+  let stockError: string | null = null;
+  if (stockConfig && stockQuery) {
+    try {
+      stockPhotos = await searchStockPhotos(stockQuery, stockConfig);
+      if (!stockPhotos.length) stockError = `No photos found for “${stockQuery}”; try broader words`;
+    } catch (error) {
+      stockError = error instanceof ImageError ? error.message : "Photo search failed; try again";
+    }
   }
   const metrics = check.metrics as { word_count?: number; reading_minutes?: number; flesch_reading_ease?: number; internal_links?: number; citations?: number };
 
@@ -186,7 +202,7 @@ export default async function DraftReviewPage({ params, searchParams }: { params
           </Card>
 
           {/* Image */}
-          <Card>
+          <Card id="featured-image">
             <h2 className="font-semibold mb-2">Featured image</h2>
             {a.featured_image ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -198,17 +214,51 @@ export default async function DraftReviewPage({ params, searchParams }: { params
             {editable && canGenerate && (
               <form action={generateImageAction} className="mt-3 space-y-2">
                 <input type="hidden" name="id" value={a.id} />
-                <Label htmlFor="prompt">Generate with AI (free, Cloudflare Workers AI)</Label>
-                <Textarea id="prompt" name="prompt" rows={4} minLength={10} maxLength={1500} required defaultValue={a.image_prompt ?? ""} placeholder="Describe the image: subject, style, colours. Text and logos are excluded automatically." />
+                <Label htmlFor="prompt">Generate a realistic photo with AI (free, Cloudflare Workers AI)</Label>
+                <Textarea id="prompt" name="prompt" rows={4} minLength={10} maxLength={1500} required defaultValue={a.image_prompt ?? ""} placeholder="Describe the photo: subject, setting, lighting, camera angle. It is always rendered as a realistic photograph; text and logos are excluded." />
                 <PendingButton size="sm" pendingLabel="Generating… (up to a minute)" confirmMessage={a.featured_image ? "Replace the current featured image with a generated one?" : undefined}>
                   {a.featured_image ? "Generate a new image" : "Generate image"}
                 </PendingButton>
               </form>
             )}
+            {editable && stockConfig && (
+              <div className="mt-4 border-t border-border pt-4">
+                <form method="get" action={`/admin/blog-agent/drafts/${a.id}#featured-image`} className="space-y-2">
+                  <Label htmlFor="stock">{canGenerate ? "Nothing suitable? Find a real stock photo" : "Find a real stock photo"}</Label>
+                  <div className="flex gap-2">
+                    <Input id="stock" name="stock" defaultValue={stockQuery || (a.primary_keyword ?? "")} minLength={2} maxLength={100} required placeholder="e.g. small business owner laptop" />
+                    <Button type="submit" size="sm" variant="outline">Search</Button>
+                  </div>
+                </form>
+                {stockError && <p className="mt-2 text-xs text-destructive">{stockError}</p>}
+                {stockPhotos.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {stockPhotos.map((photo) => (
+                      <form key={photo.id} action={chooseStockPhotoAction} className="space-y-1">
+                        <input type="hidden" name="id" value={a.id} />
+                        <input type="hidden" name="photo_id" value={photo.id} />
+                        {/* eslint-disable-next-line @next/next/no-img-element -- Pexels thumbnail */}
+                        <img src={photo.thumbUrl} alt={photo.alt || "Stock photo"} loading="lazy" className="aspect-[1200/627] w-full rounded-md border border-border object-cover" />
+                        <PendingButton size="sm" variant="outline" className="w-full" pendingLabel="Saving…" confirmMessage={a.featured_image ? "Replace the current featured image with this photo?" : undefined}>
+                          Use this photo
+                        </PendingButton>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          Photo by <a href={photo.photographerUrl} target="_blank" rel="noopener noreferrer" className="underline">{photo.photographer}</a> on{" "}
+                          <a href={photo.pageUrl} target="_blank" rel="noopener noreferrer" className="underline">Pexels</a>
+                        </p>
+                      </form>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" className="underline">Photos provided by Pexels</a> · free to use commercially
+                </p>
+              </div>
+            )}
             {editable && (
-              <form action={uploadImageAction} className="mt-3 space-y-2">
+              <form action={uploadImageAction} className="mt-4 space-y-2 border-t border-border pt-4">
                 <input type="hidden" name="id" value={a.id} />
-                {canGenerate && <Label>Or upload your own</Label>}
+                {(canGenerate || stockConfig) && <Label>Or upload your own</Label>}
                 <Input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/avif" required aria-label="Featured image" />
                 <p className="text-xs text-muted-foreground">JPEG, PNG, WebP or AVIF up to 4 MB, at least 600 × 315 (1200 × 630 is ideal). Saved as WebP under 400 KB.</p>
                 <PendingButton size="sm" variant="outline" pendingLabel="Uploading…">Upload</PendingButton>

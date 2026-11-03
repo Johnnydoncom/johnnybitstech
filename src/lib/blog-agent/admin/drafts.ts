@@ -134,6 +134,14 @@ export async function setFeaturedImage(db: Db, id: string, url: string) {
   await db.execute(sql`UPDATE articles SET featured_image = ${url} WHERE id = ${id}`);
 }
 
+/** Sets the featured image's alt text (e.g. from a chosen stock photo's description). */
+export async function setFeaturedImageAlt(db: Db, id: string, alt: string) {
+  await requireAgentArticle(db, id, ["pending_review", "rejected", "published"]);
+  const text = alt.replace(/\s+/g, " ").trim();
+  if (text.length < 5 || text.length > 125) throw new AdminError("Alt text must be 5–125 characters");
+  await db.execute(sql`UPDATE articles SET featured_image_alt = ${text} WHERE id = ${id}`);
+}
+
 /** Saves an edited image prompt (used when the admin regenerates the featured image). */
 export async function setImagePrompt(db: Db, id: string, prompt: string) {
   await requireAgentArticle(db, id, ["pending_review", "rejected", "published"]);

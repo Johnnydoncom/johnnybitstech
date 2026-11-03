@@ -3,7 +3,7 @@ import { getBrandContext } from "@/lib/blog-agent/brand/johnnybits";
 import { createFixtureProvider } from "@/lib/blog-agent/embeddings/fixture";
 import {
   AdminError, deleteRejected, editInternalLink, getArticle, listInternalLinks, prePublishCheck, publishArticle,
-  rejectArticle, restoreToReview, setFeaturedImage, setImagePrompt, unpublishArticle, updateDraft, type DraftEdit,
+  rejectArticle, restoreToReview, setFeaturedImage, setFeaturedImageAlt, setImagePrompt, unpublishArticle, updateDraft, type DraftEdit,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, listQueue, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun, getRunDetail, listDrafts, overviewCounts } from "@/lib/blog-agent/admin/runs";
@@ -69,6 +69,9 @@ describe("review and publish", () => {
     await setImagePrompt(t.db, articleId, "  A calm office desk   with a laptop, teal accents  ");
     expect((await getArticle(t.db, articleId))!.image_prompt).toBe("A calm office desk with a laptop, teal accents");
     expect((await adminError(setImagePrompt(t.db, articleId, "short"))).message).toMatch(/10–1,500/);
+    await setFeaturedImageAlt(t.db, articleId, "  Woman working on a laptop  ");
+    expect((await getArticle(t.db, articleId))!.featured_image_alt).toBe("Woman working on a laptop");
+    expect((await adminError(setFeaturedImageAlt(t.db, articleId, "x".repeat(126)))).message).toMatch(/5–125/);
   });
 
   it("unpublishes: off the site and out of search, URL and publish date kept, linking posts reported", async () => {

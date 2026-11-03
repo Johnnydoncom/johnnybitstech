@@ -152,10 +152,16 @@ makes the index searchable; `/blog`, the post and the sitemap are revalidated. S
 the FAQ structured data, so it never drifts from the page. **Reject** needs a reason and can re-queue the keyword;
 only rejected articles can be deleted.
 
-**Generating the featured image (optional, free):** the agent writes an image prompt (S7). On the review page,
-**Generate image** sends it (editable first) to Cloudflare Workers AI's FLUX.1 [schnell] model, centre-crops the
-1024 × 1024 result to 1024 × 538 (the 1.91:1 social-card shape) and saves it like an upload. Text, logos and
-watermarks are excluded in the prompt automatically. Cost: free within Cloudflare's 10,000 Neurons a day (about 60
+**Generating the featured image (optional, free):** the agent writes a photo description (S7). On the review page,
+**Generate image** sends it (editable first) to Cloudflare Workers AI's FLUX.1 [schnell] model as a *photorealistic*
+photograph (drawing-style words such as "flat illustration" are rewritten; text, logos, brands and watermarks are
+excluded), centre-crops the 1024 × 1024 result to 1024 × 538 (the 1.91:1 social-card shape) and saves it like an upload.
+
+**Stock-photo fallback (optional, free):** with `PEXELS_API_KEY` set, the review page can search Pexels for real
+landscape photographs and **Use this photo**: the 1200 × 627 crop is downloaded (from images.pexels.com only),
+saved as WebP under 400 KB, and its Pexels description becomes the alt text (check it). The picker links to Pexels
+and credits each photographer as Pexels' API guidelines ask; the photo, photographer and Pexels page are recorded in
+`audit_log`. Pexels photos are free for commercial use. Get a key at pexels.com/api, add it in Vercel, redeploy. Cost: free within Cloudflare's 10,000 Neurons a day (about 60
 per image); `IMAGE_GEN_DAILY_LIMIT` (20) caps clicks so the allowance is never exhausted. Gemini's API has no free
 tier for image models, so it is not used; you can still make an image free in the Gemini app and upload it.
 Setup: Cloudflare dashboard → Workers AI → **Use REST API** → copy the Account ID and create an API token
@@ -271,6 +277,7 @@ Environment Variables.
 | `CRON_SECRET` | Yes (Phase 5) | Authenticates the daily maintenance cron |
 | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_TOKEN` | No | Free featured-image generation (Workers AI); empty = upload only |
 | `IMAGE_GEN_DAILY_LIMIT` | No | Generated images per 24 h (20) |
+| `PEXELS_API_KEY` | No | Real stock-photo search on the review page; empty = no stock search |
 | `OAUTH_ISSUER` | No | Overrides the OAuth issuer (local testing: `http://localhost:3000`) |
 | `OAUTH_ALLOWED_CLIENT_HOSTS` | No | CIMD hosts, default `claude.ai,claude.com` |
 | `MCP_STATIC_TOKEN` | No | Fixed bearer token for header-auth connectors; empty = OAuth only |

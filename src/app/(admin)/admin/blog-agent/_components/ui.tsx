@@ -76,8 +76,8 @@ export function StatusBadge({ status }: { status: string }) {
 export const fmt = (d: string | Date | null | undefined) =>
   d ? new Date(d).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos" }) : "—";
 
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <section className={cn("rounded-2xl border border-border bg-card p-6 shadow-sm", className)}>{children}</section>;
+export function Card({ children, className, id }: { children: React.ReactNode; className?: string; id?: string }) {
+  return <section id={id} className={cn("rounded-2xl border border-border bg-card p-6 shadow-sm scroll-mt-24", className)}>{children}</section>;
 }
 
 export const tableHead = "border-b border-border bg-muted/50 text-left text-muted-foreground";

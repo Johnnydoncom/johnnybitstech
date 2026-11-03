@@ -8,13 +8,14 @@ import { getDb } from "@/db/client";
 import { audit } from "@/lib/audit";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import {
-  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, setImagePrompt, unpublishArticle, updateDraft,
+  AdminError, deleteRejected, editInternalLink, getArticle, publishArticle, rejectArticle, restoreToReview, setFeaturedImage, setFeaturedImageAlt, setImagePrompt, unpublishArticle, updateDraft,
 } from "@/lib/blog-agent/admin/drafts";
 import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun, resumeRun } from "@/lib/blog-agent/admin/runs";
 import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
 import { parseAgentEnv } from "@/lib/blog-agent/env";
 import { generateFeaturedImage, imageGenConfig } from "@/lib/blog-agent/image-gen";
+import { altFromStockPhoto, downloadStockPhoto, stockPhotoConfig } from "@/lib/blog-agent/stock-photos";
 import { ImageError, optimizeImage, type OptimizedImage } from "@/lib/blog-agent/images";
 import { BLOB_NOT_CONFIGURED, isBlobStorageConfigured } from "@/lib/blob-storage";
 import { rateLimit } from "@/lib/rate-limit";
@@ -123,6 +124,27 @@ export async function resumeRunAction(fd: FormData) {
     await resumeRun(getDb(), r, admin.email);
     await log(admin, "run.resume", "pipeline_run", r);
     return "Run resumed: the next agent session (scheduled, or Run now) continues from the saved stages";
+  });
+}
+
+export async function chooseStockPhotoAction(fd: FormData) {
+  const a = id(fd);
+  await attempt(draftPage(a), "article.image_stock", async (admin) => {
+    const config = stockPhotoConfig();
+    if (!config) throw new AdminError("Stock photos are not set up: add PEXELS_API_KEY (free at pexels.com/api) and redeploy");
+    requireBlobStorage();
+    const article = await getArticle(getDb(), a);
+    if (!article) throw new AdminError("Article not found");
+    const photoId = Number(field(fd, "photo_id"));
+    const { data, photo } = await downloadStockPhoto(photoId, config);
+    const image = await optimizeImage(data);
+    await storeFeaturedImage(article, image);
+    const alt = altFromStockPhoto(photo);
+    if (alt.length >= 5) await setFeaturedImageAlt(getDb(), a, alt);
+    await log(admin, "article.image_stock", "article", a, {
+      source: "pexels", photo_id: photo.id, photo_url: photo.pageUrl, photographer: photo.photographer, bytes: image.bytes,
+    });
+    return `Photo by ${photo.photographer} on Pexels saved as WebP (${Math.round(image.bytes / 1024)} KB).${alt.length >= 5 ? " Alt text updated from Pexels: check it describes the photo." : " Write alt text that describes the photo."}`;
   });
 }
 

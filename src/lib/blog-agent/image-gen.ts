@@ -32,11 +32,22 @@ export function imageGenConfig(source: Record<string, string | undefined> = proc
   return { accountId: parsed.data.CLOUDFLARE_ACCOUNT_ID, token: parsed.data.CLOUDFLARE_AI_TOKEN, dailyLimit: parsed.data.IMAGE_GEN_DAILY_LIMIT };
 }
 
-/** The agent's prompt plus guard rails the model needs: blog covers must not contain (garbled) text or logos. */
+/** Style words that make FLUX draw instead of photograph; older agent prompts (and people) still use them. */
+const DRAWN_STYLE = /\b(?:(?:flat|vector|cartoon|isometric|minimalist|hand-drawn|digital)\s+)*(?:illustration|drawing|vector art|clip ?art|cartoon|3d render|rendering)s?\b/gi;
+const PHOTO_PREFIX = "Photorealistic editorial stock photograph, as if taken with a professional camera: ";
+const PHOTO_SUFFIX =
+  ". Natural light, realistic textures, colours and proportions, shallow depth of field, wide landscape composition with the " +
+  "main subject centred. Not an illustration, drawing, cartoon, 3D render or vector art. No text, letters, numbers, logos, " +
+  "watermarks or recognisable brands.";
+
+/**
+ * Turns the agent's image prompt into a photorealistic one: drawing-style words become "photograph", and guard rails
+ * keep (garbled) text, logos and brands out of blog covers.
+ */
 export function buildImagePrompt(prompt: string): string {
-  const base = prompt.trim().replace(/\s+/g, " ").replace(/[.\s]+$/, "");
-  const suffix = ". Wide landscape composition with the main subject centred and space around it. No text, letters, numbers, logos or watermarks.";
-  return `${base.slice(0, MAX_PROMPT_CHARS - suffix.length)}${suffix}`;
+  const base = prompt.trim().replace(/\s+/g, " ").replace(DRAWN_STYLE, "photograph").replace(/[.\s]+$/, "");
+  const room = MAX_PROMPT_CHARS - PHOTO_PREFIX.length - PHOTO_SUFFIX.length;
+  return `${PHOTO_PREFIX}${base.slice(0, room)}${PHOTO_SUFFIX}`;
 }
 
 const responseSchema = z.object({
