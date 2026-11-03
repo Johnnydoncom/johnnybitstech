@@ -429,3 +429,19 @@ Still open:
 - Added **Unpublish** for agent articles (there was no way to take one offline). The slug stays locked for any
   article that has ever been live, so an indexed URL never changes.
 - Not done, by design: `blog_posts` stays until two weeks of stable production (see the runbook).
+
+## 18. Phase 6 deviations
+
+- Three skills instead of eight: `johnnybits-blog-research` (S1–S4, plus S2 batch planning), `johnnybits-blog-writing`
+  (S5–S8) and `johnnybits-blog-qa` (S9). Each stage keeps the ROLE / INPUTS / TASK / HARD RULES / OUTPUT SCHEMA /
+  FAILURE BEHAVIOUR / EXAMPLE shape. Grouping by who uses them keeps the QA reviewer's context free of the writing
+  instructions, and the skill review card takes at most three at a time.
+- A test (`tests/agent/cowork-skills.test.ts`) validates every JSON example in the skills against the stage schemas,
+  so the skills cannot drift from what `save_stage_output` accepts.
+- The QA sub-agent saves `s9_qa` itself, so the writer never relays or edits the verdict, and each review loop uses a
+  new sub-agent.
+- The task prompt was revised for the built connector: `claim_next_keyword` creates the run (no `create_run`),
+  `resumed` runs continue from `get_run`, staleness after a draft re-save, `report_failure` on every stop,
+  `validate_article` before QA, and no files or questions in unattended sessions. The planned `dry_run` flag was
+  dropped: in lexical mode the agent makes no paid calls, and the first three on-demand runs are reviewed by a human
+  before any schedule is set.

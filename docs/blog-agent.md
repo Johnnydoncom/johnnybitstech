@@ -11,8 +11,8 @@ Design and decisions: [`blog-agent-plan.md`](./blog-agent-plan.md). This file is
 | 2 | OAuth + `/api/mcp` + run/queue/stage tools | Done (tested locally against production 2026-11-02) |
 | 3 | Linking, SEO package, validators, indexing, `create_draft` | Done |
 | 4 | `/admin/blog-agent` + publish flow | Done |
-| 5 | Hardening, retention, spend cap, end-to-end test, docs | **Done, awaiting review** |
-| 6 | Cowork skills + scheduled task | Not started |
+| 5 | Hardening, retention, spend cap, end-to-end test, docs | Done |
+| 6 | Cowork skills + scheduled task | **Skills and task prompt done; supervised runs after deploy** (see [`cowork/blog-agent-task.md`](./cowork/blog-agent-task.md)) |
 
 ## Commands
 
