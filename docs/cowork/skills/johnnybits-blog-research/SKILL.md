@@ -24,11 +24,22 @@ Shared hard rules for every stage:
 
 **ROLE** SEO strategist for a Nigerian web, SEO and app development company.
 
-**INPUTS** The claimed keyword and its queue notes (from `claim_next_keyword`), `get_brand_context`, live web search.
+**INPUTS** The claimed keyword, its queue notes and `post` (from `claim_next_keyword` or `get_run`),
+`get_brand_context`, live web search.
+
+**Several posts per keyword.** A queue keyword can ask for several distinct articles. `post.number` / `post.of` say
+which one this run writes, and `post.siblings` lists the earlier posts for the same keyword (URL, primary keyword,
+angle, H2s). For post 1, target the core query. For every later post:
+- Choose a **distinct long-tail primary keyword** under the queue keyword that no sibling targets: a sub-topic,
+  audience, city, budget level, comparison or specific question seen in the results or "People also ask"
+  (for "website cost in Nigeria": "ecommerce website cost for Lagos fashion brands", "website maintenance cost per year").
+- Prefer a different `search_intent` or `content_type` from the siblings where the results support it.
+- Never reuse a sibling's primary keyword or a near-variant of it (plural, reordered, a year added).
 
 **TASK**
 1. Search the keyword as a Nigerian searcher would (add "Nigeria" or a city if that is how people search it).
-   Read the top 5 organic results and the "People also ask" questions.
+   Read the top 5 organic results and the "People also ask" questions. For a later post, search the long-tail
+   variants too and pick the one with a clear, unserved need.
 2. Decide the dominant search intent from what actually ranks, the content type that matches it, and the word count
    needed to cover the topic better than those results without padding (usually 1,200–2,000; never below 800).
 3. Collect secondary keywords (close variants and subtopics seen in the results) and real searcher questions.
@@ -62,10 +73,14 @@ unavailable, call `report_failure` (stage `s1_keyword`) with a recommendation. D
 ```
 
 ### Then: `check_cannibalization(run_id)`
-- `block`: the topic is already covered. Call `report_failure` (stage `s1_keyword`) recommending an update to the
-  matching article, and stop.
-- `review`: similar content exists. Either choose a clearly different angle and record it in the brief's `angle`
-  and `avoid`, or stop with `report_failure` if no distinct angle is possible.
+- `block` with `sibling_conflict: true`: an earlier post for this same queue keyword already targets that primary
+  keyword. Do **not** stop: pick a different long-tail primary keyword as above, re-save `s1_keyword` and call
+  `check_cannibalization` again (this counts as one of your 2 retries).
+- `block` otherwise: the topic is already covered. Call `report_failure` (stage `s1_keyword`) recommending an update
+  to the matching article, and stop.
+- `review`: similar content exists (matches marked `sibling` are earlier posts for this keyword). Either choose a
+  clearly different angle and record it in the brief's `angle` and `avoid`, or stop with `report_failure` if no
+  distinct angle is possible.
 - `ok`: continue.
 
 ---
@@ -84,7 +99,9 @@ Use only URLs returned by `search_site_content`. Skip this stage if no cluster a
 **Batch mode (the monthly planning task, no run):** propose up to 10 clusters tied to Johnnybits' services
 (from `get_brand_context`), each with a pillar keyword and up to 30 supporting keywords that real Nigerian buyers
 search. Check each candidate with `search_site_content` first and leave out topics already covered. Save with
-`save_cluster_plan({ clusters: [{ name, pillar_keyword, priority 0–80, notes?, children: [{ keyword, priority?, notes? }] }] })`.
+`save_cluster_plan({ clusters: [{ name, pillar_keyword, priority 0–80, notes?, children: [{ keyword, priority?, posts?, notes? }] }] })`.
+`posts` (default 1, max 20) asks for several distinct articles on a broad keyword; use it only when the results show
+several clearly different sub-topics worth a post each.
 Pillars get higher priority than their children. Commercial topics close to a service outrank general ones.
 
 ---
@@ -108,6 +125,9 @@ which internal pages are relevant, and the CTA.
 - `cta`: copy one CTA from `get_brand_context` exactly (label and url).
 - `word_count_target` = S1 `target_word_count`. The final article must land within −15% / +25% of it.
 - `avoid`: include "Any Johnnybits figure not in approvedClaims" plus anything competitors get wrong.
+- **Later posts for a keyword:** the `angle`, `working_title` and `h2_plan` must differ clearly from every
+  sibling's (compare with `post.siblings`). Add "Repeating the angle, headings or examples of <sibling URL>" to
+  `avoid`, and list the most relevant sibling in `internal_link_targets`.
 
 **OUTPUT SCHEMA**
 ```

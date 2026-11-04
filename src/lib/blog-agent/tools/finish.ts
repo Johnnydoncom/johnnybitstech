@@ -15,34 +15,17 @@ import { fuseRankings, vectorSearch } from "../retrieval/vector";
 import type { s1KeywordSchema, s3BriefSchema, s4ResearchSchema, s6DraftSchema, s7SeoSchema, s8LinksSchema, s9QaSchema } from "../schemas/stages";
 import { buildSeoPackage, type SeoPackage } from "../seo/package";
 import { uniqueSlug } from "../seo/slug";
+import { writtenCountSql } from "./keyword-posts";
 import { existingSitePaths } from "./stage-checks";
-import { assertRunning, insertStageOutput, latestStages, loadRun, nextStage, requireStage, savedAt, touchRun, type StageMap } from "./run-store";
+import { currentApplied, currentOriginality, loadRunning, type Applied } from "./current";
+import { insertStageOutput, nextStage, requireStage, savedAt, touchRun, type StageMap } from "./run-store";
 import { defineTool, normalizeKeyword, ToolError, type ToolContext } from "./types";
 
 type Out<T extends z.ZodType> = z.output<T>;
 const runIdInput = z.object({ run_id: z.string().uuid() });
 const issue = z.object({ path: z.string(), message: z.string() });
 
-type Applied = { title: string; markdown: string; applied: { url: string; anchor_text: string; offset: number }[]; source_draft_hash: string; links_version: number };
 type IndexOutput = { chunk_count: number; chunks: (Chunk & { embedding?: number[] })[]; embedding_model: string | null; embedding_dims: number | null; verified: boolean };
-
-async function loadRunning(ctx: ToolContext, runId: string) {
-  const run = await loadRun(ctx.db, runId);
-  assertRunning(run);
-  return { run, saved: await latestStages(ctx.db, run.id) };
-}
-
-/** The linked draft, only if it was built from the latest draft and latest link picks. */
-function currentApplied(saved: StageMap) {
-  const draft = requireStage(saved, "s6_draft", "Save the draft first");
-  const links = saved.get("s8_links");
-  const applied = saved.get("s8_applied");
-  if (!applied || !links) throw new ToolError("invalid_state", "Internal links have not been applied", "Save s8_links, then call apply_internal_links");
-  if ((applied.output as Applied).source_draft_hash !== draft.content_hash || savedAt(applied) < savedAt(links)) {
-    throw new ToolError("invalid_state", "The draft or link picks changed after links were applied", "Call apply_internal_links again");
-  }
-  return applied;
-}
 
 function currentPackage(saved: StageMap, applied: { content_hash: string | null }) {
   const pkg = saved.get("s7_package");
@@ -296,6 +279,7 @@ export const indexArticle = defineTool({
     const { run, saved } = await loadRunning(ctx, input.run_id);
     const applied = currentApplied(saved);
     currentPackage(saved, applied);
+    currentOriginality(saved, applied);
     const validation = currentValidation(saved, applied);
     if ((validation.output as ValidationReport).passed !== true) {
       throw new ToolError("invalid_state", "Validation has not passed", "Fix the errors from validate_article and validate again");
@@ -337,9 +321,10 @@ export const createDraft = defineTool({
   name: "create_draft",
   title: "Create the article draft for human review",
   description:
-    "Final step. Refuses unless: QA (s9_qa) is PASS for the current draft, validate_article passed for the current linked article and " +
-    "SEO package, and index_article ran on that exact version. Then creates the article as pending_review with its index entries " +
-    "(not searchable), marks the run draft_created and the keyword done. The article is NOT published; a human reviews it.",
+    "Final step. Refuses unless: check_originality passed and validate_article passed for the current linked article and SEO package, " +
+    "QA (s9_qa) is PASS for the current draft, and index_article ran on that exact version. Then creates the article as pending_review with its " +
+    "index entries (not searchable) and marks the run draft_created. The keyword is marked done once it has as many posts as it asks for; " +
+    "otherwise it goes back in the queue for its next post. The article is NOT published; a human reviews it.",
   input: runIdInput,
   output: z.object({
     article_id: z.string().uuid(),
@@ -351,6 +336,7 @@ export const createDraft = defineTool({
     links_inserted: z.number(),
     chunks_stored: z.number(),
     validation_warnings: z.array(issue),
+    keyword: z.object({ status: z.enum(["done", "queued"]), posts_written: z.number(), posts_target: z.number() }).optional(),
   }),
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   async run(ctx, input) {
@@ -362,6 +348,7 @@ export const createDraft = defineTool({
     if ((qa.output as Out<typeof s9QaSchema>).verdict !== "PASS") throw new ToolError("invalid_state", "Editorial QA did not pass", "Apply the QA revisions and run QA again");
     const applied = currentApplied(saved);
     const pkgRecord = currentPackage(saved, applied);
+    const originality = currentOriginality(saved, applied);
     const validation = currentValidation(saved, applied);
     const report = validation.output as ValidationReport;
     if (!report.passed) throw new ToolError("invalid_state", "Validation has not passed", "Fix the errors from validate_article and validate again");
@@ -386,7 +373,7 @@ export const createDraft = defineTool({
 
     const cited = new Set([...linked.markdown.matchAll(/\[\^(r\d+)\]/g)].map((m) => m[1]));
     const citations = s4.items.filter((i) => cited.has(i.id)).map((i) => ({ id: i.id, title: i.publisher, url: i.source_url, publisher: i.publisher, date: i.published_date ?? undefined }));
-    const qaReport = { qa: qa.output, validation: report, seo_warnings: pkg.warnings, run_id: run.id };
+    const qaReport = { qa: qa.output, validation: report, originality: originality.output, seo_warnings: pkg.warnings, run_id: run.id, post_number: run.post_number };
     const chunkRows = indexOut.chunks.map((c) => ({
       scope: c.scope,
       section_key: c.section_key,
@@ -401,7 +388,7 @@ export const createDraft = defineTool({
     // One statement, so the article, its index rows, the run and the keyword change together or not at all.
     let rows;
     try {
-      rows = rowsOf<{ article_id: string; chunks: number }>(
+      rows = rowsOf<{ article_id: string; chunks: number; keyword_status: "done" | "queued" | null; posts_written: number | null; posts_target: number | null }>(
         await ctx.db.execute(sql`
           WITH art AS (
             INSERT INTO articles (
@@ -432,16 +419,25 @@ export const createDraft = defineTool({
             UPDATE pipeline_runs SET status = 'draft_created', article_id = art.id, current_stage = 's11_draft', finished_at = now(), heartbeat_at = now()
             FROM art WHERE pipeline_runs.id = ${run.id}::uuid
           ), kw AS (
-            UPDATE keyword_queue SET status = 'done' WHERE id = ${run.keyword_id}::uuid
+            -- The statement's snapshot does not include the new article, hence the + 1. Done once the target is met;
+            -- otherwise back in the queue (rotation puts it behind keywords with fewer posts).
+            UPDATE keyword_queue k
+            SET status = CASE WHEN ${writtenCountSql(sql`k.id`)} + 1 >= k.posts_target THEN 'done'::keyword_status ELSE 'queued'::keyword_status END,
+                claimed_at = CASE WHEN ${writtenCountSql(sql`k.id`)} + 1 >= k.posts_target THEN k.claimed_at ELSE NULL END,
+                claimed_by_run = CASE WHEN ${writtenCountSql(sql`k.id`)} + 1 >= k.posts_target THEN k.claimed_by_run ELSE NULL END
+            WHERE k.id = ${run.keyword_id}::uuid
+            RETURNING k.status::text AS status, ${writtenCountSql(sql`k.id`)} + 1 AS written, k.posts_target
           )
-          SELECT art.id AS article_id, (SELECT count(*)::int FROM ch) AS chunks FROM art
+          SELECT art.id AS article_id, (SELECT count(*)::int FROM ch) AS chunks,
+                 (SELECT status FROM kw) AS keyword_status, (SELECT written FROM kw) AS posts_written, (SELECT posts_target FROM kw) AS posts_target
+          FROM art
         `),
       );
     } catch (error) {
       if (isUniqueViolation(error)) throw new ToolError("conflict", `The slug "${pkg.slug}" was taken meanwhile`, "Call build_seo_package, validate_article and index_article again");
       throw error;
     }
-    const [{ article_id: articleId, chunks }] = rows;
+    const [{ article_id: articleId, chunks, keyword_status: keywordStatus, posts_written: postsWritten, posts_target: postsTarget }] = rows;
     if (chunks !== indexOut.chunk_count) throw new ToolError("internal", `Stored ${chunks} of ${indexOut.chunk_count} index entries`);
 
     await audit(ctx.db, { actor: ctx.clientId, actorType: "mcp_client", action: "article.draft_created", entity: "article", entityId: articleId, details: { run_id: run.id, slug: pkg.slug } });
@@ -455,6 +451,7 @@ export const createDraft = defineTool({
       links_inserted: linked.applied.length,
       chunks_stored: chunks,
       validation_warnings: report.warnings,
+      ...(keywordStatus ? { keyword: { status: keywordStatus, posts_written: Number(postsWritten), posts_target: Number(postsTarget) } } : {}),
     };
   },
 });

@@ -11,7 +11,7 @@ import {
   AdminError, deleteArticle, editInternalLink, getArticle, insertSectionImage, publishArticle, rejectArticle, removeContentImage, restoreToReview,
   setFeaturedImage, setFeaturedImageAlt, setImagePrompt, unpublishArticle, updateDraft,
 } from "@/lib/blog-agent/admin/drafts";
-import { addKeywords, deleteKeyword, requeueKeyword, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
+import { addKeywords, deleteKeyword, requeueKeyword, setPostsTarget, setPriority, skipKeyword } from "@/lib/blog-agent/admin/queue";
 import { abandonRun, resumeRun } from "@/lib/blog-agent/admin/runs";
 import { getEmbeddingsProvider } from "@/lib/blog-agent/embeddings";
 import { parseAgentEnv } from "@/lib/blog-agent/env";
@@ -65,9 +65,20 @@ async function log(admin: { email: string }, action: string, entity: string, ent
 
 export async function addKeywordsAction(fd: FormData) {
   await attempt(`${BASE}/queue`, "queue.add", async (admin) => {
-    const r = await addKeywords(getDb(), field(fd, "keywords"), Number(field(fd, "priority") || 50), field(fd, "notes").trim() || null);
-    await log(admin, "queue.add", "keyword_queue", null, r);
-    return `Added ${r.added} keyword(s)${r.skipped.length ? `; skipped ${r.skipped.length} already in the queue` : ""}`;
+    const posts = Number(field(fd, "posts") || 1);
+    const r = await addKeywords(getDb(), field(fd, "keywords"), Number(field(fd, "priority") || 50), field(fd, "notes").trim() || null, posts);
+    await log(admin, "queue.add", "keyword_queue", null, { ...r, posts });
+    return `Added ${r.added} keyword(s)${posts > 1 ? `, ${posts} posts each` : ""}${r.skipped.length ? `; skipped ${r.skipped.length} already in the queue` : ""}`;
+  });
+}
+
+export async function setPostsTargetAction(fd: FormData) {
+  await attempt(`${BASE}/queue`, "queue.posts", async (admin) => {
+    const k = id(fd);
+    const posts = Number(field(fd, "posts"));
+    const r = await setPostsTarget(getDb(), k, posts);
+    await log(admin, "queue.posts", "keyword_queue", k, { posts, ...r });
+    return `Posts per keyword set to ${posts} (${r.posts_written} written; ${r.status})`;
   });
 }
 

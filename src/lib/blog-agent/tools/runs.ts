@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { contentHash } from "../hash";
 import { AGENT_STAGES, STAGE_PREREQUISITES, stageSchemas, type AgentStage } from "../schemas/stages";
+import { postInfoForRun, postInfoSchema } from "./keyword-posts";
 import { assertRunning, insertStageOutput, latestStages, loadRun, nextStage, staleStages, touchRun } from "./run-store";
 import { checkStage, type CheckIssue } from "./stage-checks";
 import { defineTool, runAdminUrl, ToolError } from "./types";
@@ -32,6 +33,7 @@ export const getRun = defineTool({
       cannibalization: z.unknown(),
       admin_url: z.string(),
     }),
+    post: postInfoSchema.nullable().describe("Which post of the keyword this run writes and the earlier posts it must differ from"),
     stages: z.record(z.string(), z.object({ version: z.number(), saved_at: z.string(), content_hash: z.string().nullable(), output: z.unknown() })),
     next_stage: z.string(),
     stale_stages: z.array(z.string()),
@@ -54,6 +56,7 @@ export const getRun = defineTool({
         cannibalization: run.cannibalization ?? null,
         admin_url: runAdminUrl(ctx, run.id),
       },
+      post: await postInfoForRun(ctx.db, run),
       stages: Object.fromEntries(
         [...saved].map(([stage, r]) => [stage, { version: r.version, saved_at: iso(r.created_at)!, content_hash: r.content_hash, output: r.output }]),
       ),
@@ -102,7 +105,13 @@ export const saveStageOutput = defineTool({
     if (stage === "s3_brief") {
       if (!run.cannibalization) throw new ToolError("invalid_state", "Call check_cannibalization before saving the brief");
       if (run.cannibalization.verdict === "block") {
-        throw new ToolError("invalid_state", "Cannibalization check blocked this keyword", "Call report_failure recommending an update to the existing article");
+        throw new ToolError(
+          "invalid_state",
+          "Cannibalization check blocked this keyword",
+          run.cannibalization.sibling_conflict
+            ? "An earlier post for this keyword already targets it: choose a distinct long-tail primary keyword, re-save s1_keyword and call check_cannibalization again"
+            : "Call report_failure recommending an update to the existing article",
+        );
       }
     }
 
@@ -129,6 +138,11 @@ export const saveStageOutput = defineTool({
     }
 
     const version = await insertStageOutput(ctx.db, run.id, stage, parsed.data, hash);
+    if (stage === "s1_keyword" && run.cannibalization) {
+      // A new primary keyword needs a fresh cannibalization check (e.g. after choosing a distinct long-tail keyword).
+      await ctx.db.execute(sql`UPDATE pipeline_runs SET cannibalization = NULL WHERE id = ${run.id}`);
+      run.cannibalization = null;
+    }
     await touchRun(ctx.db, run.id, stage);
     saved.set(stage, { stage, version, output: parsed.data as Record<string, unknown>, content_hash: hash, created_at: new Date() });
     return { saved: true, stage, version, content_hash: hash, next_stage: nextStage(saved, run), warnings };

@@ -282,6 +282,7 @@ export async function rejectArticle(db: Db, id: string, reason: string, requeueK
       UPDATE keyword_queue SET status = 'queued', claimed_at = NULL, claimed_by_run = NULL,
              notes = left(coalesce(notes || E'\n', '') || ${`Draft rejected: ${text}`}, 4000)
       WHERE id = (SELECT keyword_id FROM pipeline_runs WHERE id = ${a.run_id}::uuid)
+        AND status <> 'claimed' -- another post for this keyword is being written; its draft step re-queues it
     `);
   }
 }

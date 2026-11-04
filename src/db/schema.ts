@@ -45,6 +45,8 @@ export const pipelineStage = pgEnum("pipeline_stage", [
   "s7_seo", "s8_links", "s9_qa", "s10_index", "s11_draft",
   // App-produced (0003)
   "s8_applied", "s7_package", "s9_validation",
+  // App-produced (0004)
+  "s9_originality",
 ]);
 
 export type ArticleStatus = (typeof articleStatus.enumValues)[number];
@@ -78,6 +80,8 @@ export const keywordQueue = pgTable("keyword_queue", {
   keyword: text("keyword").notNull(),
   keywordNormalized: text("keyword_normalized").notNull().unique(),
   priority: integer("priority").notNull().default(50),
+  /** Distinct articles to write for this keyword (1–20); re-queued after each draft until reached. */
+  postsTarget: integer("posts_target").notNull().default(1),
   status: keywordStatus("status").notNull().default("queued"),
   clusterId: uuid("cluster_id"),
   source: text("source").$type<"admin" | "agent" | "import">().notNull().default("admin"),
@@ -96,6 +100,8 @@ export const pipelineRuns = pgTable("pipeline_runs", {
   articleId: uuid("article_id"),
   error: jsonb("error"),
   clientId: text("client_id"),
+  /** Which post (1..posts_target) of the keyword this run writes. */
+  postNumber: integer("post_number"),
   embeddingCostUsd: numeric("embedding_cost_usd", { precision: 12, scale: 6 }).notNull().default("0"),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   heartbeatAt: timestamp("heartbeat_at", { withTimezone: true }).notNull().defaultNow(),

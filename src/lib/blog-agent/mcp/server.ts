@@ -3,6 +3,7 @@ import type { AuthInfo, CallToolResult, McpServer } from "@modelcontextprotocol/
 import type { Db } from "@/db/types";
 import type { EmbeddingsProvider } from "../embeddings/types";
 import type { AgentEnv } from "../env";
+import type { SourceFetcher } from "../qa/source-fetch";
 import { rateLimit } from "@/lib/rate-limit";
 import { BLOG_AGENT_TOOLS } from "../tools";
 import { ToolError, type ToolContext, type ToolDefinition } from "../tools/types";
@@ -23,6 +24,7 @@ export type ServerDeps = {
   rateLimitPerMinute: number;
   agentEnv: AgentEnv;
   embeddings: EmbeddingsProvider | null;
+  fetchSource?: SourceFetcher;
 };
 
 type ErrorPayload = { error: { code: string; message: string; hint?: string; details?: unknown } };
@@ -47,7 +49,7 @@ export async function invokeTool(tool: ToolDefinition, args: unknown, auth: Auth
     if (!limit.allowed) {
       throw new ToolError("rate_limited", `Rate limit of ${limit.limit} calls per minute reached`, `Wait until ${limit.resetAt.toISOString()} and retry`);
     }
-    const ctx: ToolContext = { db, clientId, grantId, siteOrigin: deps.siteOrigin, agentEnv: deps.agentEnv, embeddings: deps.embeddings };
+    const ctx: ToolContext = { db, clientId, grantId, siteOrigin: deps.siteOrigin, agentEnv: deps.agentEnv, embeddings: deps.embeddings, fetchSource: deps.fetchSource };
     const input = tool.input.parse(args ?? {});
     const output = tool.output.parse(await tool.run(ctx, input)) as Record<string, unknown>;
     ok = true;

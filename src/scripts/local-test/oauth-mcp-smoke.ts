@@ -132,7 +132,7 @@ async function main() {
     record("MCP initialize", init.res.status === 200 && (init.json?.result as { serverInfo?: { name?: string } })?.serverInfo?.name === "johnnybits-blog-agent", `status ${init.res.status}`);
     const list = await mcp(tok2.access_token, "tools/list");
     const names = ((list.json?.result as { tools?: { name: string }[] })?.tools ?? []).map((t) => t.name);
-    record("tools/list returns 16 tools, none can publish/approve/delete", names.length === 16 && !names.some((n) => /publish|approve|reject|delete/.test(n)), names.join(", "));
+    record("tools/list returns 17 tools, none can publish/approve/delete", names.length === 17 && !names.some((n) => /publish|approve|reject|delete/.test(n)), names.join(", "));
     const brand = await mcp(tok2.access_token, "tools/call", { name: "get_brand_context", arguments: {} });
     const company = (brand.json?.result as { structuredContent?: { company?: { name?: string }; authors?: { name: string }[] } })?.structuredContent;
     record("get_brand_context (live)", company?.company?.name === "Johnnybits Technology" && company?.authors?.[0]?.name === "Odoh John");

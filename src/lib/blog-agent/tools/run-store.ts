@@ -18,6 +18,7 @@ export type RunRow = {
   current_stage: string | null;
   article_id: string | null;
   client_id: string | null;
+  post_number: number | null;
   error: unknown;
   cannibalization: { verdict: "ok" | "review" | "block" } & Record<string, unknown> | null;
   started_at: string | Date;
@@ -67,7 +68,7 @@ const at = (r: StageRecord | undefined) => (r ? new Date(r.created_at).getTime()
 
 /**
  * The next stage to save or tool to call. App steps are bound to content hashes, so re-saving the draft
- * (s6) makes the inserted links, SEO package, QA and validation stale automatically.
+ * (s6) makes the inserted links, SEO package, originality check, QA and validation stale automatically.
  */
 export function nextStage(saved: ReadonlyMap<PipelineStage, StageRecord>, run?: Pick<RunRow, "cannibalization"> | null): string {
   const get = (s: PipelineStage) => saved.get(s);
@@ -83,6 +84,10 @@ export function nextStage(saved: ReadonlyMap<PipelineStage, StageRecord>, run?: 
   if (!seo) return "s7_seo";
   const pkg = get("s7_package");
   if (!pkg || pkg.content_hash !== applied.content_hash || at(pkg) < at(seo)) return "build_seo_package";
+  // Originality is checked on the linked text before QA, so the reviewer sees an article that is already original.
+  const originality = get("s9_originality");
+  if (!originality || originality.content_hash !== applied.content_hash) return "check_originality";
+  if (originality.output.passed !== true) return "revise_for_originality";
   const qa = get("s9_qa");
   if (!qa || qa.content_hash !== draft.content_hash) return "s9_qa";
   const validation = get("s9_validation");

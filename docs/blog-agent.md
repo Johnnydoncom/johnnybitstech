@@ -86,16 +86,17 @@ Manage or revoke connections at `/admin/blog-agent/connections` (also shows the 
 |---|---|
 | `get_brand_context` | Brand facts, services + canonical URLs, tone, CTAs, authors, portfolio, approved/banned claims |
 | `search_site_content` | Lexical search over published articles and site pages |
-| `enqueue_keywords` | Adds keywords (priority ≤ 80; duplicates skipped) |
+| `enqueue_keywords` | Adds keywords (priority ≤ 80; `posts` 1–20 distinct articles per keyword; duplicates skipped) |
 | `save_cluster_plan` | Stage 2 batch mode: clusters + their keywords |
-| `claim_next_keyword` | Claims the top keyword **and creates its run atomically**; resumes this connection's open run |
+| `claim_next_keyword` | Claims the next keyword (rotation: fewest posts written first, then priority) **and creates its run atomically**; returns `post` (number, target, earlier sibling posts); resumes this connection's open run |
 | `create_run` | Starts a run for a named keyword |
-| `get_run` | Run + latest version of every stage, next stage, stale stages |
+| `get_run` | Run + latest version of every stage, next stage, stale stages, and `post` (which post of the keyword, siblings) |
 | `save_stage_output` | Validates (schema + site data) and versions a stage; `validate_only` to check first |
-| `check_cannibalization` | `ok` / `review` / `block` against published, pending and in-flight content; required before s3 |
+| `check_cannibalization` | `ok` / `review` / `block` against published, pending and in-flight content; `sibling_conflict` when the clash is an earlier post for the same keyword (pick another long-tail keyword); required before s3 |
 | `find_link_candidates` | Related published articles + site pages (lexical; hybrid when embeddings are on), always the service/portfolio/contact pages, and the link-count range |
 | `apply_internal_links` | Inserts the `s8_links` picks into the draft in code, after checking every rule; verifies the result |
 | `build_seo_package` | Unique slug, canonical, JSON-LD, word count, read time, Flesch score, keyword density/placement |
+| `check_originality` | Free plagiarism check (see below): overlap with every other site article and copied passages from the fetched research sources; `passed` + exact passages |
 | `validate_article` | Hard gate (see below); returns `passed` + exact errors |
 | `index_article` | Retrieval units (full, intro, each H2, FAQ, meta), embedded and verified when embeddings are on |
 | `create_draft` | Gated; creates the `pending_review` article + index entries (not searchable) in one statement |
@@ -104,7 +105,23 @@ Manage or revoke connections at `/admin/blog-agent/connections` (also shows the 
 No publish, approve, reject or delete tool exists; a test fails if one is ever added.
 **Run order** (every save and `get_run` return `next_stage`): `s1_keyword` → `check_cannibalization` → `s3_brief` →
 `s4_research` → `s5_outline` → `s6_draft` → `find_link_candidates` → `s8_links` → `apply_internal_links` → `s7_seo` →
-`build_seo_package` → `s9_qa` → `validate_article` → `index_article` → `create_draft`.
+`build_seo_package` → `check_originality` → `s9_qa` → `validate_article` → `index_article` → `create_draft`.
+
+**Posts per keyword (migration `0004`):** each queue keyword has `posts_target` (1–20, default 1). A run records its
+`post_number`. `create_draft` marks the keyword `done` once that many of its posts are pending review or published,
+otherwise re-queues it. Claiming rotates: the keyword with the fewest written posts goes first, then priority, so
+every keyword gets one post before any gets a second. Later posts get the earlier ones as `post.siblings`; their
+primary keyword must differ (exact or near-identical, trigram ≥ 0.8, is a `block` with `sibling_conflict`). Rejected
+or deleted drafts stop counting; raising a finished keyword's target in the admin re-queues it.
+
+**Originality (free, no paid API):** text is compared as lower-cased word sequences, ignoring markdown, URLs and
+footnote definitions; words inside quotation marks or blockquotes are allowed. Errors: 12+ identical words in a row
+from a research source, more than 10% of the article's 8-word phrases matching one source, more than 15% matching
+another site article, or a 25+ word passage repeated from one. 5–15% overlap or a 12–24 word repeat is a warning.
+Sources are fetched by the server (https only, port 443, public DNS only, max 3 redirects each re-checked, 5 s and
+2 MB per page, HTML/text only, max 15, 15 s budget); pages it cannot read are warnings for QA to check by hand. The
+report is stored with the draft's QA report and shown on the review page. Limits: it cannot see the wider web
+beyond the cited sources, and it checks wording, not ideas; QA still reads the sources.
 
 **Version binding:** the linked article, SEO package, validation and index are tied to content hashes. Re-saving the
 draft (s6) makes all of them stale, and `create_draft` refuses until each is redone for the current text. QA (s9) is
@@ -121,6 +138,10 @@ words, or a 2+-digit number that is not a year) cites research; every citation i
 definition linking its exact source; external links only to research sources; internal links exist and are in range;
 no banned brand claims; keyword density ≤ 3.5%; meta lengths; FAQ structured data identical to the visible FAQ;
 BlogPosting JSON-LD matches the title and canonical. Readability, keyword placement and density 2.5–3.5% are warnings.
+
+**Rolling out posts per keyword:** `npm run db:migrate` (applies `0004`) **before** deploying: the new code reads
+`posts_target`, while the old code ignores the new columns, so migrating first is safe. Then re-save the three skills
+and the scheduled task prompt from `docs/cowork/`.
 
 **Rolling out Phase 3:** `npm install` → `npm run db:migrate` (applies `0003`) → deploy. Optional: `npm run agent:index-backfill`.
 
@@ -139,7 +160,7 @@ Origin/Host check, and is written to `audit_log`):
 | Page | What you can do |
 |---|---|
 | Overview | Counts: drafts awaiting review, runs needing a human, runs in progress, queue, connections |
-| Keyword queue | Add keywords in bulk (priority 0–100), change priority, skip, re-queue failed/skipped, delete |
+| Keyword queue | Add keywords in bulk (priority 0–100, posts per keyword 1–20), see "N of M" posts written, change posts or priority, skip, re-queue failed/skipped, delete |
 | Runs | Every run; the detail page shows each saved stage version (JSON), why a run stopped, the overlap check, tool calls; abandon a run, re-queue its keyword |
 | Drafts → review | Edit title, slug (locked once an article has been live), unpublish, SEO fields and the Markdown; change or remove internal links (only to published pages); upload the featured image; live preview with the real blog styles; QA report and sources |
 | Connections | Connector URL, revoke connections, recent tool calls |

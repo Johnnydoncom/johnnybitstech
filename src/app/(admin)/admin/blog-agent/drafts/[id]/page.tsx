@@ -26,6 +26,13 @@ type QaReport = {
   qa?: { verdict: string; summary: string; issues: { severity: string; location: string; problem: string; exact_revision: string }[] };
   validation?: { warnings: { message: string }[] };
   seo_warnings?: { message: string }[];
+  post_number?: number | null;
+  originality?: {
+    passed: boolean;
+    warnings: { message: string }[];
+    internal: { compared: number; matches: { url: string; title: string; overlap: number }[] };
+    sources: { checked: number; not_checked: number };
+  };
 };
 
 export default async function DraftReviewPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string; stock?: string; stock_target?: string; stock_alt?: string }> }) {
@@ -368,6 +375,31 @@ export default async function DraftReviewPage({ params, searchParams }: { params
               {qa.qa.issues.length > 0 && (
                 <ul className="mt-3 space-y-2 text-sm">
                   {qa.qa.issues.map((iss, i) => <li key={i}><span className="font-medium capitalize">{iss.severity}</span> · {iss.location}: {iss.problem}</li>)}
+                </ul>
+              )}
+            </Card>
+          )}
+
+          {/* Originality */}
+          {qa.originality && (
+            <Card>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold">Originality</h2>
+                <StatusBadge status={qa.originality.passed ? "done" : "failed"} />
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {qa.post_number && qa.post_number > 1 ? `Post ${qa.post_number} for its keyword. ` : ""}
+                Compared with {qa.originality.internal.compared} site article(s) and {qa.originality.sources.checked} source page(s)
+                {qa.originality.sources.not_checked ? `; ${qa.originality.sources.not_checked} source(s) could not be fetched, so check those by hand` : ""}.
+              </p>
+              {qa.originality.internal.matches.length > 0 && (
+                <ul className="mt-3 space-y-1.5 text-sm">
+                  {qa.originality.internal.matches.slice(0, 3).map((m) => (
+                    <li key={m.url}>
+                      <Link href={m.url} className="text-primary hover:underline">{m.title}</Link>
+                      <span className="text-muted-foreground"> · {Math.round(m.overlap * 100)}% shared phrasing</span>
+                    </li>
+                  ))}
                 </ul>
               )}
             </Card>

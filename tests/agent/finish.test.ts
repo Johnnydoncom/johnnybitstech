@@ -43,6 +43,7 @@ async function throughQa(call: Call, runId: string, qa: object = fx.s9Pass) {
   expect(ok(await call("apply_internal_links", { run_id: runId })).links_inserted).toBe(3);
   await save("s7_seo", fx.s7);
   ok(await call("build_seo_package", { run_id: runId }));
+  expect(ok(await call("check_originality", { run_id: runId }))).toMatchObject({ passed: true, next_stage: "s9_qa" });
   await save("s9_qa", qa);
   return candidates;
 }
@@ -166,7 +167,7 @@ describe("Phase 3 tool sequence", () => {
     const second = ok(await other("create_run", { keyword: "website cost in nigeria 2026" })).run_id as string;
     ok(await other("save_stage_output", { run_id: second, stage: "s1_keyword", output: fx.s1 }));
     const check = ok(await other("check_cannibalization", { run_id: second }));
-    expect(check.verdict).toBe("block");
+    expect(check).toMatchObject({ verdict: "block", sibling_conflict: false });
     expect((check.matches as { url: string; status: string }[])[0]).toMatchObject({ url: "/blog/website-cost-in-nigeria", status: "pending_review" });
   });
 

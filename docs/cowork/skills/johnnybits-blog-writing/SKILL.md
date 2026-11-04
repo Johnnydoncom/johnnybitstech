@@ -5,7 +5,8 @@ description: Johnnybits Blog Agent stages S5 outline, S6 article writing, S8 int
 
 # Johnnybits Blog Agent: outline, draft, links and SEO fields (S5, S6, S8, S7)
 
-Order within a run: S5 → S6 → `find_link_candidates` → S8 → `apply_internal_links` → S7 → `build_seo_package`.
+Order within a run: S5 → S6 → `find_link_candidates` → S8 → `apply_internal_links` → S7 → `build_seo_package`
+→ `check_originality`.
 Save each stage with `save_stage_output(run_id, stage, output)`; `validate_only: true` checks without saving.
 On a validation error fix exactly what it names and retry (at most 2 retries), then `report_failure`.
 
@@ -60,6 +61,12 @@ confident without hype.
   exactly one plain-text answer paragraph (no links, bold, figures or citations; 1–3 sentences). S7 copies them verbatim.
 - `[[NEEDS_SOURCE]]` may mark an unsupported point while drafting, but none may remain at the end: add research in
   S4 (re-save it) or remove the point.
+- **Original writing (the server checks it with `check_originality`):** write every sentence yourself from the
+  research claims. Never copy or closely paraphrase a source page, a competitor or another Johnnybits post: 12 or
+  more words in a row matching a source, or a section that mirrors a source's wording and order, fails the draft.
+  To use a source's exact words, quote at most one short sentence in quotation marks with its citation.
+- **Later posts for a keyword** (`post.number` > 1): a different article, not a rewrite. Do not reuse a sibling's
+  headings, introduction, examples, tables or FAQ questions; cover what the siblings do not.
 - **Banned:** any claim in `bannedClaims` (years in business, project counts, ratings, traffic or cost-per-lead
   figures, and the rest of that list); any Johnnybits number not in `approvedClaims` (currently none); invented
   clients, quotes, testimonials, case studies or results; superlatives about Johnnybits (best, leading, number one);
@@ -142,5 +149,13 @@ pick, fix that pick, re-save S8 and apply again.
 
 Then call `build_seo_package(run_id)`. Act on its warnings: primary keyword missing from the first 100 words or the
 titles, keyword density above 2.5% (it fails above 3.5%), or Flesch reading ease below 45. To fix, revise S6.
+
+### Then: `check_originality(run_id)`
+The server compares the linked article with every other Johnnybits article (including earlier posts for the same
+keyword) and fetches the research sources. `passed: false` lists each problem: an `internal:` path names a site
+article this one repeats; a `source:` path names a page copied from without quotation marks, with an excerpt.
+Rewrite those passages in your own words (different wording and sentence structure, not synonyms swapped in), re-save
+`s6_draft`, redo the stale stages from `get_run` and check again. Sources it could not fetch are warnings: QA checks
+them by hand. At most 2 rewrite loops, then `report_failure`.
 
 **EXAMPLE** `{"meta_title":"Website Cost in Nigeria: A Practical Price Guide","meta_description":"What a website really costs in Nigeria: one-off and ongoing costs, typical ranges by website type, and how to keep your budget under control.","slug_suggestion":"website-cost-in-nigeria","category":"Web Design","tags":["Website Cost","Web Design","Nigeria"],"image_prompt":"A small business owner in a Lagos office reviewing a website design on a laptop, a notebook with handwritten costs beside it, soft window light, over-the-shoulder angle, shallow depth of field","image_alt":"Business owner reviewing a website design on a laptop beside a notebook of costs","faq":[{"question":"How much is a basic website in Nigeria?","answer":"It depends on scope, so get itemised quotes and compare them line by line."},{"question":"Why do website prices vary so much?","answer":"Quotes differ in design depth, content and integrations."}]}`

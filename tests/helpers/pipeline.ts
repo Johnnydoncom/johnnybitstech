@@ -23,6 +23,7 @@ export async function runPipeline(call: Call) {
   ok(await call("apply_internal_links", { run_id: runId }));
   await save("s7_seo", fx.s7);
   ok(await call("build_seo_package", { run_id: runId }));
+  expect(ok(await call("check_originality", { run_id: runId })).passed).toBe(true);
   await save("s9_qa", fx.s9Pass);
   expect(ok(await call("validate_article", { run_id: runId })).passed).toBe(true);
   const index = ok(await call("index_article", { run_id: runId }));

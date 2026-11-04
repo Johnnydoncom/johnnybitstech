@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 const STAGE_LABELS: Record<string, string> = {
   s1_keyword: "1 · Keyword intelligence", s2_cluster: "2 · Cluster placement", s3_brief: "3 · Brief", s4_research: "4 · Research",
   s5_outline: "5 · Outline", s6_draft: "6 · Draft", s8_links: "8 · Link picks", s8_applied: "8 · Links inserted (app)",
-  s7_seo: "7 · SEO fields", s7_package: "7 · SEO package (app)", s9_qa: "9 · Editorial QA", s9_validation: "9 · Validation (app)",
+  s7_seo: "7 · SEO fields", s7_package: "7 · SEO package (app)", s9_originality: "9 · Originality check (app)", s9_qa: "9 · Editorial QA",
+  s9_validation: "9 · Validation (app)",
   s10_index: "10 · Index (app)", s11_draft: "11 · Draft created (app)",
 };
 

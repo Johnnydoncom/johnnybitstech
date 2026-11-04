@@ -26,7 +26,7 @@ describe("migrations", () => {
   it("applies every migration and records it", async () => {
     t = await createTestDb();
     const status = await migrationStatus(t.exec);
-    expect(status.map((s) => [s.version, Boolean(s.appliedAt)])).toEqual([["0001", true], ["0002", true], ["0003", true]]);
+    expect(status.map((s) => [s.version, Boolean(s.appliedAt)])).toEqual([["0001", true], ["0002", true], ["0003", true], ["0004", true]]);
     expect(await migrateUp(t.exec)).toEqual([]); // idempotent
   });
 
@@ -52,6 +52,11 @@ describe("migrations", () => {
     t = await createTestDb();
     await t.exec.query("INSERT INTO pipeline_runs (keyword) VALUES ('k')");
     await t.exec.query("INSERT INTO pipeline_stage_outputs (run_id, stage, version, output) SELECT id, 's8_applied', 1, '{}' FROM pipeline_runs");
+    await t.exec.query("INSERT INTO pipeline_stage_outputs (run_id, stage, version, output) SELECT id, 's9_originality', 1, '{}' FROM pipeline_runs");
+    expect(await migrateDown(t.exec)).toEqual(["0004"]);
+    expect(await columnsOf(t, "keyword_queue")).not.toContain("posts_target");
+    expect(await columnsOf(t, "pipeline_runs")).not.toContain("post_number");
+    expect((await t.exec.query("SELECT stage::text FROM pipeline_stage_outputs")).map((r) => (r as { stage: string }).stage)).toEqual(["s8_applied"]);
     expect(await migrateDown(t.exec)).toEqual(["0003"]);
     expect((await t.exec.query("SELECT 1 FROM pipeline_stage_outputs")).length).toBe(0); // app-stage rows removed with the enum values
     expect(await migrateDown(t.exec)).toEqual(["0002"]);
@@ -61,7 +66,17 @@ describe("migrations", () => {
     for (const table of tables) expect((await columnsOf(t, getTableName(table))).size).toBe(0);
     expect(await columnsOf(t, "blog_posts")).toContain("slug"); // legacy table untouched
     expect(await columnsOf(t, "admin_users")).not.toContain("role");
-    expect(await migrateUp(t.exec)).toEqual(["0001", "0002", "0003"]);
+    expect(await migrateUp(t.exec)).toEqual(["0001", "0002", "0003", "0004"]);
+  });
+
+  it("defaults posts_target to 1 and keeps it between 1 and 20", async () => {
+    t = await createTestDb();
+    await t.exec.query("INSERT INTO keyword_queue (keyword, keyword_normalized) VALUES ('web design', 'web design')");
+    const [row] = await t.exec.query<{ posts_target: number }>("SELECT posts_target FROM keyword_queue");
+    expect(row.posts_target).toBe(1);
+    await expect(t.exec.query("UPDATE keyword_queue SET posts_target = 0")).rejects.toThrow();
+    await expect(t.exec.query("UPDATE keyword_queue SET posts_target = 21")).rejects.toThrow();
+    await t.exec.query("UPDATE keyword_queue SET posts_target = 20");
   });
 
   it("enforces article invariants", async () => {

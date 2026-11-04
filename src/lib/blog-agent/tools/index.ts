@@ -1,6 +1,7 @@
 import { checkCannibalization } from "./cannibalization";
 import { getBrandContextTool, searchSiteContentTool } from "./content";
 import { claimNextKeyword, createRun, enqueueKeywords, saveClusterPlan } from "./queue";
+import { checkOriginalityTool } from "./originality";
 import { getRun, reportFailure, saveStageOutput } from "./runs";
 import { applyInternalLinks, buildSeoPackageTool, createDraft, findLinkCandidates, indexArticle, validateArticleTool } from "./finish";
 import type { ToolDefinition } from "./types";
@@ -22,6 +23,7 @@ export const BLOG_AGENT_TOOLS = [
   findLinkCandidates,
   applyInternalLinks,
   buildSeoPackageTool,
+  checkOriginalityTool,
   validateArticleTool,
   indexArticle,
   createDraft,

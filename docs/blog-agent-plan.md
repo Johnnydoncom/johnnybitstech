@@ -454,3 +454,21 @@ Still open:
   Blob storage; the replaced Blob is deleted.
 - Generation is admin-only (a human still approves the image), audited (`article.image_generate`), capped per day,
   and optional: no credentials, no button.
+
+## 20. Several posts per keyword (added 2026-11-04)
+
+- Asked for a configurable number of unique, plagiarism-free posts per keyword. Chosen: **rotate** (one post per
+  keyword before any keyword's next) and **free checks** (no Copyscape or other paid API).
+- Migration `0004`: `keyword_queue.posts_target` (1–20, default 1), `pipeline_runs.post_number`, stage
+  `s9_originality`. "Written" is derived (articles pending review or published per keyword), never stored, so rejecting
+  or deleting a draft frees a slot without bookkeeping.
+- Uniqueness is enforced three ways: distinct primary keywords per sibling (cannibalisation `block` with
+  `sibling_conflict`, which asks for another long-tail keyword instead of stopping), the originality check against all
+  site articles, and QA comparing with sibling URLs.
+- New tool `check_originality` (17 tools in total) sits after `build_seo_package` and before QA, so the reviewer sees
+  an article that already passed; `index_article` and `create_draft` require it to have passed on the exact text.
+- Source fetching is SSRF-guarded (see the runbook). DNS is checked before each hop; a rebinding attack between that
+  check and the connection remains theoretically possible and is accepted because the response is only compared, never
+  returned or stored beyond overlap figures and short excerpts.
+- Re-saving `s1_keyword` now clears the stored cannibalisation result so a changed keyword is always re-checked.
+- Rejecting a draft with "re-queue" leaves a keyword alone while another of its posts is being written.

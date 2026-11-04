@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { requireAdmin } from "@/lib/blog-agent/admin/auth";
 import { listQueue } from "@/lib/blog-agent/admin/queue";
-import { addKeywordsAction, deleteKeywordAction, requeueKeywordAction, setPriorityAction, skipKeywordAction } from "../actions";
+import { MAX_POSTS_PER_KEYWORD } from "@/lib/blog-agent/tools/keyword-posts";
+import { addKeywordsAction, deleteKeywordAction, requeueKeywordAction, setPostsTargetAction, setPriorityAction, skipKeywordAction } from "../actions";
 import { ConfirmButton } from "../_components/ConfirmButton";
 import { AgentHeader, Card, Notice, StatusBadge, fmt, tableHead, td, th } from "../_components/ui";
 
@@ -21,7 +22,11 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
 
   return (
     <div>
-      <AgentHeader title="Keyword queue" description="The agent writes the highest-priority queued keyword next." active="/admin/blog-agent/queue" />
+      <AgentHeader
+        title="Keyword queue"
+        description="Keywords take turns: each gets one post before any gets its next, highest priority first. Every post for a keyword is a distinct article."
+        active="/admin/blog-agent/queue"
+      />
       <Notice ok={sp.ok} error={sp.error} />
 
       <Card className="mb-8">
@@ -35,6 +40,11 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
             <div>
               <Label htmlFor="priority">Priority (0–100)</Label>
               <Input id="priority" name="priority" type="number" min={0} max={100} defaultValue={50} className="mt-1.5" />
+            </div>
+            <div>
+              <Label htmlFor="posts">Posts per keyword</Label>
+              <Input id="posts" name="posts" type="number" min={1} max={MAX_POSTS_PER_KEYWORD} defaultValue={1} className="mt-1.5" aria-describedby="posts-help" />
+              <p id="posts-help" className="mt-1 text-xs text-muted-foreground">Unique articles, each on a different angle (1–{MAX_POSTS_PER_KEYWORD}).</p>
             </div>
             <Button type="submit">Add to queue</Button>
           </div>
@@ -55,7 +65,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
       ) : (
         <div className="rounded-2xl border border-border bg-card overflow-x-auto shadow-sm">
           <table className="w-full text-sm">
-            <thead><tr className={tableHead}><th className={th}>Keyword</th><th className={th}>Status</th><th className={th}>Priority</th><th className={th}>Cluster</th><th className={th}>Added</th><th className={`${th} text-right`}>Actions</th></tr></thead>
+            <thead><tr className={tableHead}><th className={th}>Keyword</th><th className={th}>Status</th><th className={th}>Posts</th><th className={th}>Priority</th><th className={th}>Cluster</th><th className={th}>Added</th><th className={`${th} text-right`}>Actions</th></tr></thead>
             <tbody>
               {rows.map((k) => (
                 <tr key={k.id} className="border-b border-border last:border-0">
@@ -66,6 +76,16 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
                   <td className={td}>
                     <StatusBadge status={k.status} />
                     {k.claimed_by_run && <Link href={`/admin/blog-agent/runs/${k.claimed_by_run}`} className="ml-2 text-xs text-primary hover:underline">run</Link>}
+                  </td>
+                  <td className={td}>
+                    <form action={setPostsTargetAction} className="flex items-center gap-1.5">
+                      <input type="hidden" name="id" value={k.id} />
+                      <span className="whitespace-nowrap text-xs text-muted-foreground" title="Posts written (awaiting review or published) of posts wanted">
+                        {k.posts_written} of
+                      </span>
+                      <Input name="posts" type="number" min={1} max={MAX_POSTS_PER_KEYWORD} defaultValue={k.posts_target} className="h-8 w-16" aria-label={`Posts wanted for ${k.keyword}`} />
+                      <Button type="submit" size="sm" variant="ghost">Save</Button>
+                    </form>
                   </td>
                   <td className={td}>
                     <form action={setPriorityAction} className="flex gap-1.5">

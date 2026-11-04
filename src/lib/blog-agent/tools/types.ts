@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { Db } from "@/db/types";
 import type { EmbeddingsProvider } from "../embeddings/types";
 import type { AgentEnv } from "../env";
+import type { SourceFetcher } from "../qa/source-fetch";
 
 export type ToolContext = {
   db: Db;
@@ -13,6 +14,8 @@ export type ToolContext = {
   agentEnv: AgentEnv;
   /** Null in lexical-only mode (no embeddings key configured). */
   embeddings: EmbeddingsProvider | null;
+  /** Reads research sources for check_originality; defaults to the SSRF-guarded fetcher. Tests inject a fake. */
+  fetchSource?: SourceFetcher;
 };
 
 export type ToolErrorCode = "not_found" | "invalid_state" | "validation_failed" | "conflict" | "rate_limited" | "internal";

@@ -11,6 +11,11 @@ import type { CallOutcome } from "../helpers/tools";
 
 let t: TestDb;
 vi.mock("@/db/client", () => ({ getDb: () => t.db }));
+// The real route reads research sources over the network; tests stay offline.
+vi.mock("@/lib/blog-agent/qa/source-fetch", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/blog-agent/qa/source-fetch")>();
+  return { ...actual, fetchSourceText: async (url: string) => ({ ok: false as const, url, reason: "offline in tests" }) };
+});
 
 let POST: (req: Request) => Promise<Response>;
 let token: string;

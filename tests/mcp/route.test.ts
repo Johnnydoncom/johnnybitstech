@@ -65,7 +65,7 @@ describe("/api/mcp", () => {
     const { json } = await rpc("tools/list");
     const names: string[] = json.result.tools.map((x: { name: string }) => x.name);
     expect(names.sort()).toEqual([
-      "apply_internal_links", "build_seo_package", "check_cannibalization", "claim_next_keyword", "create_draft", "create_run",
+      "apply_internal_links", "build_seo_package", "check_cannibalization", "check_originality", "claim_next_keyword", "create_draft", "create_run",
       "enqueue_keywords", "find_link_candidates", "get_brand_context", "get_run", "index_article", "report_failure",
       "save_cluster_plan", "save_stage_output", "search_site_content", "validate_article",
     ]);

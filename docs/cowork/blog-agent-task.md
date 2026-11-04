@@ -13,7 +13,8 @@ three skills live in `docs/cowork/skills/` and are saved to the Claude account f
    gets the connectors that existed when it was created (it cannot be added later). The current task was created on
    2026-11-03 at 18:03 with the connector attached. Without it the task replies "Johnnybits Blog connector not
    available in this session" and stops.
-4. Add a few keywords in `/admin/blog-agent/queue`.
+4. Add a few keywords in `/admin/blog-agent/queue`. Set **Posts per keyword** above 1 for broad topics: the queue
+   rotates (every keyword gets one post before any gets its next) and each post takes a different long-tail angle.
 5. Run the **Johnnybits Blog Agent** scheduled task on demand. Review the draft in `/admin/blog-agent/drafts`.
 6. After three drafts in a row pass your review, give the task a schedule (suggested: Tuesday and Friday mornings,
    one article per run).
@@ -47,16 +48,23 @@ WORKFLOW
      why an earlier session stopped, use its recommendation. If next_stage is revise_draft_after_qa, apply every
      exact_revision in the latest s9_qa (step 9), then continue; this session gets its own 2 revision loops.
    - "claimed": it already created the run; keep its run_id for every call.
+   A keyword may ask for several distinct posts: "post" says which one this is (post.number of post.of) and lists
+   the earlier posts (post.siblings). For post 2 or later, follow post.guidance: a distinct long-tail primary
+   keyword, a different angle and structure, and nothing reused from the siblings.
 2. S1 keyword intelligence → save s1_keyword. Call check_cannibalization(run_id):
-   "block" → report_failure recommending an update to the matching article, then stop.
+   "block" with sibling_conflict true → choose a distinct long-tail primary keyword, re-save s1_keyword and check
+   again (counts as a retry).
+   "block" otherwise → report_failure recommending an update to the matching article, then stop.
    "review" → choose a clearly different angle for the brief, or report_failure if none exists.
 3. Optional S2 cluster placement → s2_cluster. Then S3 brief → s3_brief.
 4. S4 research: open every source yourself → s4_research.
 5. S5 outline → s5_outline. S6 article → s6_draft.
 6. find_link_candidates(run_id) → choose links per the writing skill → s8_links → apply_internal_links(run_id).
 7. S7 SEO fields → s7_seo → build_seo_package(run_id). Act on its warnings.
-8. validate_article(run_id). Fix every error, usually by revising S6. After any S6 re-save, call get_run and redo
-   each stale stage in next_stage order. At most 2 fix loops, then report_failure.
+8. check_originality(run_id): the plagiarism check against the site's other articles and the research sources.
+   If passed is false, rewrite every flagged passage in your own words (S6), redo the stale stages and check again.
+   Then validate_article(run_id) and fix every error, usually by revising S6. After any S6 re-save, call get_run and
+   redo each stale stage in next_stage order. At most 2 fix loops each, then report_failure.
 9. Editorial QA: start a NEW sub-agent for each review and give it only this instruction:
    "Use the johnnybits-blog-qa skill to review Johnnybits blog run <run_id>. Fetch everything you need through
    the Johnnybits Blog connector, save s9_qa yourself, and reply with the verdict, summary and issue counts."
@@ -64,8 +72,9 @@ WORKFLOW
    redo the stale stages, validate_article again, then a new QA sub-agent. At most 2 revision loops; if QA still
    fails, report_failure with the outstanding issues.
 10. index_article(run_id), then create_draft(run_id).
-11. Final report (short): title, slug, word count, internal links inserted, sources cited, QA verdict and loops
-    used, any warnings left, and the admin review link from create_draft.
+11. Final report (short): title, slug, post number (e.g. "post 2 of 3" for the keyword), word count, internal links
+    inserted, sources cited, originality result, QA verdict and loops used, any warnings left, and the admin review
+    link from create_draft.
 ```
 
 ## Task prompt: cluster planner (optional, monthly)
