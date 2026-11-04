@@ -12,7 +12,7 @@ On a validation error fix exactly what it names and retry (at most 2 retries), t
 
 Use ONLY the saved brief (`s3_brief`), research (`s4_research`) and `get_brand_context`. Nothing from memory.
 
-**Re-saving the draft (S6) makes S8, S7, the linked article, the SEO package, validation and QA stale.** After any
+**Re-saving the draft (S6) makes S8, S7, the linked article, the SEO package, the originality check, validation and QA stale.** After any
 S6 re-save, call `get_run`, then redo every stage it lists as stale, in `next_stage` order.
 
 ---
@@ -150,6 +150,8 @@ pick, fix that pick, re-save S8 and apply again.
 Then call `build_seo_package(run_id)`. Act on its warnings: primary keyword missing from the first 100 words or the
 titles, keyword density above 2.5% (it fails above 3.5%), or Flesch reading ease below 45. To fix, revise S6.
 
+**EXAMPLE** `{"meta_title":"Website Cost in Nigeria: A Practical Price Guide","meta_description":"What a website really costs in Nigeria: one-off and ongoing costs, typical ranges by website type, and how to keep your budget under control.","slug_suggestion":"website-cost-in-nigeria","category":"Web Design","tags":["Website Cost","Web Design","Nigeria"],"image_prompt":"A small business owner in a Lagos office reviewing a website design on a laptop, a notebook with handwritten costs beside it, soft window light, over-the-shoulder angle, shallow depth of field","image_alt":"Business owner reviewing a website design on a laptop beside a notebook of costs","faq":[{"question":"How much is a basic website in Nigeria?","answer":"It depends on scope, so get itemised quotes and compare them line by line."},{"question":"Why do website prices vary so much?","answer":"Quotes differ in design depth, content and integrations."}]}`
+
 ### Then: `check_originality(run_id)`
 The server compares the linked article with every other Johnnybits article (including earlier posts for the same
 keyword) and fetches the research sources. `passed: false` lists each problem: an `internal:` path names a site
@@ -157,5 +159,3 @@ article this one repeats; a `source:` path names a page copied from without quot
 Rewrite those passages in your own words (different wording and sentence structure, not synonyms swapped in), re-save
 `s6_draft`, redo the stale stages from `get_run` and check again. Sources it could not fetch are warnings: QA checks
 them by hand. At most 2 rewrite loops, then `report_failure`.
-
-**EXAMPLE** `{"meta_title":"Website Cost in Nigeria: A Practical Price Guide","meta_description":"What a website really costs in Nigeria: one-off and ongoing costs, typical ranges by website type, and how to keep your budget under control.","slug_suggestion":"website-cost-in-nigeria","category":"Web Design","tags":["Website Cost","Web Design","Nigeria"],"image_prompt":"A small business owner in a Lagos office reviewing a website design on a laptop, a notebook with handwritten costs beside it, soft window light, over-the-shoulder angle, shallow depth of field","image_alt":"Business owner reviewing a website design on a laptop beside a notebook of costs","faq":[{"question":"How much is a basic website in Nigeria?","answer":"It depends on scope, so get itemised quotes and compare them line by line."},{"question":"Why do website prices vary so much?","answer":"Quotes differ in design depth, content and integrations."}]}`
