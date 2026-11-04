@@ -40,6 +40,9 @@ RULES
   ambiguous, a tool keeps failing), call report_failure with the run_id, the stage, the reason and a recommendation.
   Do not improvise and do not start another keyword.
 - Do not create files, documents or artifacts. Do not ask questions: nobody is watching this session.
+- Use only the Johnnybits Blog connector, web search and web fetch. Do not use any other connector.
+- If the "Johnnybits Blog" connector's tools are not available in this session, reply "Johnnybits Blog connector
+  not available in this session" and stop.
 
 WORKFLOW
 1. Call get_brand_context once and reuse it. Call claim_next_keyword.
@@ -61,7 +64,8 @@ WORKFLOW
 5. S5 outline → s5_outline. S6 article → s6_draft.
 6. find_link_candidates(run_id) → choose links per the writing skill → s8_links → apply_internal_links(run_id).
 7. S7 SEO fields → s7_seo → build_seo_package(run_id). Act on its warnings.
-8. check_originality(run_id): the plagiarism check against the site's other articles and the research sources.
+8. check_originality(run_id) (skip only if the connector has no such tool): the plagiarism check against the
+   site's other articles and the research sources.
    If passed is false, rewrite every flagged passage in your own words (S6), redo the stale stages and check again.
    Then validate_article(run_id) and fix every error, usually by revising S6. After any S6 re-save, call get_run and
    redo each stale stage in next_stage order. At most 2 fix loops each, then report_failure.
@@ -69,7 +73,7 @@ WORKFLOW
    "Use the johnnybits-blog-qa skill to review Johnnybits blog run <run_id>. Fetch everything you need through
    the Johnnybits Blog connector, save s9_qa yourself, and reply with the verdict, summary and issue counts."
    On FAIL: apply every exact_revision (S6 re-save; add research to S4 first if a revision needs a new source),
-   redo the stale stages, validate_article again, then a new QA sub-agent. At most 2 revision loops; if QA still
+   redo the stale stages (including check_originality), validate_article again, then a new QA sub-agent. At most 2 revision loops; if QA still
    fails, report_failure with the outstanding issues.
 10. index_article(run_id), then create_draft(run_id).
 11. Final report (short): title, slug, post number (e.g. "post 2 of 3" for the keyword), word count, internal links
