@@ -1,78 +1,26 @@
-import { SITE_URL } from "@/config/site";
 import { listPublishedSlugs } from "@/lib/blog/queries";
+import { sitemapEntries, sitemapXml } from "@/lib/blog/sitemap";
 
-export const revalidate = 86400; // Cache for 24 hours
+// Read from the database on each (CDN-cached) request. The build-time snapshot that ISR kept for 24 hours left newly
+// published posts out until it expired, because on-demand revalidation of this route did not take effect on Vercel.
+export const dynamic = "force-dynamic";
+
+/** Vercel's CDN keeps a copy for 10 minutes and may serve it 10 minutes more while refreshing: new posts appear within ~10–20 minutes. */
+const CACHE = "public, max-age=0, s-maxage=600, stale-while-revalidate=600";
 
 export async function GET() {
-  const BASE_URL = SITE_URL;
-
-  // Static pages
-  const staticPages = [
-    { url: `${BASE_URL}/`, changeFrequency: "weekly", priority: "1.0" },
-    { url: `${BASE_URL}/about-the-web-design-company`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/services`, changeFrequency: "monthly", priority: "0.9" },
-    { url: `${BASE_URL}/corporate-web-design-nigeria`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/web-development-services`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/search-engine-optimization-seo`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/ecommerce-web-development`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/mobile-apps-development`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/graphics-design`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/website-maintenance-and-support`, changeFrequency: "monthly", priority: "0.8" },
-    { url: `${BASE_URL}/pricing`, changeFrequency: "monthly", priority: "0.7" },
-    { url: `${BASE_URL}/portfolio`, changeFrequency: "monthly", priority: "0.7" },
-    { url: `${BASE_URL}/blog`, changeFrequency: "weekly", priority: "0.8" },
-    { url: `${BASE_URL}/contact-us`, changeFrequency: "yearly", priority: "0.6" },
-  ];
-
-  // Dynamic blog posts from database
-  let blogPages: Array<{ url: string; lastModified: string; changeFrequency: string; priority: string }> = [];
+  let posts: { slug: string; updatedAt: Date }[];
   try {
-    const posts = await listPublishedSlugs();
-    blogPages = posts.map((post) => ({
-      url: `${BASE_URL}/blog/${post.slug}`,
-      lastModified: post.updatedAt.toISOString(),
-      changeFrequency: "weekly",
-      priority: "0.7",
-    }));
+    posts = await listPublishedSlugs();
   } catch (error) {
-    console.error("Sitemap: Failed to fetch blog posts:", error);
+    // A sitemap without the posts would be cached and believed; 503 makes crawlers retry later instead.
+    console.error("Sitemap: failed to load blog posts:", error);
+    return new Response("Sitemap temporarily unavailable", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Retry-After": "600", "Cache-Control": "no-store" },
+    });
   }
-
-  // Generate XML
-  const currentDate = new Date().toISOString();
-
-  let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
-
-  // Add static pages
-  for (const page of staticPages) {
-    xml += `
-  <url>
-    <loc>${page.url}</loc>
-    <lastmod>${currentDate}</lastmod>
-    <changefreq>${page.changeFrequency}</changefreq>
-    <priority>${page.priority}</priority>
-  </url>`;
-  }
-
-  // Add dynamic pages
-  for (const page of blogPages) {
-    xml += `
-  <url>
-    <loc>${page.url}</loc>
-    <lastmod>${page.lastModified}</lastmod>
-    <changefreq>${page.changeFrequency}</changefreq>
-    <priority>${page.priority}</priority>
-  </url>`;
-  }
-
-  xml += `
-</urlset>`;
-
-  return new Response(xml, {
-    headers: {
-      "Content-Type": "application/xml",
-    },
+  return new Response(sitemapXml(sitemapEntries(posts)), {
+    headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": CACHE },
   });
 }

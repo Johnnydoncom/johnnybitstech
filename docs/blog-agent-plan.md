@@ -472,3 +472,17 @@ Still open:
   returned or stored beyond overlap figures and short excerpts.
 - Re-saving `s1_keyword` now clears the stored cannibalisation result so a changed keyword is always re-checked.
 - Rejecting a draft with "re-queue" leaves a keyword alone while another of its posts is being written.
+
+## 21. Indexing fixes (added 2026-11-05)
+
+- Reported: only `/blog` indexed by Google, and new posts missing from `sitemap.xml`.
+- History: from 2026-05-24 until the Phase 1 rebuild (2026-11-02) the sitemap queried `published = 1` against a
+  boolean column; the error was swallowed and the sitemap listed no posts at all.
+- The sitemap was an ISR route cached for 24 hours; `revalidatePath("/sitemap.xml")` on publish did not refresh it on
+  Vercel (posts published at 14:26 and 05:51 were still missing the next morning). It is now rendered per request with
+  `s-maxage=600, stale-while-revalidate=600` at the CDN, answers 503 (not a post-less sitemap) when the database
+  fails, and no longer stamps every static page with "now" as lastmod (the blog index uses its newest post's date).
+- Added `/robots.txt` (`src/app/robots.ts`): allow all, disallow `/admin`, `/api/`, `/oauth/`, `Sitemap:` line.
+- Missing posts returned HTTP 200 with `noindex` (soft 404) because the root layout wrapped every page in
+  `<Suspense>`, so the status was sent before `notFound()` ran. Verified with a minimal Next 16 app, removed the
+  wrapper (no visible change), and gave the admin login's `useSearchParams` its own boundary.

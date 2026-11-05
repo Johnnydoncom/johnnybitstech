@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { GoogleTagManager } from '@next/third-parties/google';
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -97,11 +96,9 @@ export default function RootLayout({
     >
       <GoogleTagManager gtmId="GTM-M8RZLTSF" />
       <body className="min-h-full flex flex-col w-full">
-        <Providers>
-          <Suspense fallback={<div className="flex-1 bg-background w-full" />}>
-            {children}
-          </Suspense>
-        </Providers>
+        {/* No Suspense boundary around every page: it made the response status 200 before a page could call
+            notFound(), so missing blog posts were served as soft 404s. Wrap only components that need one. */}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
