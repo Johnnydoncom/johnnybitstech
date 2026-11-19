@@ -231,6 +231,10 @@ export const OTHER_SPECIALTIES = [
 export const PORTFOLIO = [
   { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/", image: "/assets/portfolio/Digital Marketing & Growth Agency Canada - Moonstone Digital.webp" },
   { name: "Gaidi", tags: ["Web Development"], url: "https://gaidi.de/", image: "/assets/portfolio/German-African Initiative for Development and Integration – (GAIDI) UG. WordPress Web Design.webp" },
+  { name: "The Castle Academy", tags: ["SEO", "TailwindCSS", "Web Development"], url: "https://thecastleacademy.com", image: "/assets/portfolio/The Castle Academy Lagos.webp" },
+  { name: "Castle eWil and Trust", tags: ["API Development", "Laravel", "Next.js", "SEO", "TailwindCSS", "Web Development"], url: "https://castlewilltrust.com", image: "/assets/portfolio/Castle eWil and Trust Lagos Nigeria.webp" },
+  { name: "Opseac NV", tags: ["WordPress", "Bricks", "SEO", "TailwindCSS", "Web Development"], url: "https://opseac.sr", image: "/assets/portfolio/Opseac NV Suriname.webp" },
+  { name: "Gap Castle", tags: ["WordPress", "Bricks", "SEO", "TailwindCSS", "Web Development"], url: "https://gapcastle.com", image: "/assets/portfolio/Gap Castle.webp" },
   { name: "Largelife Furniture", tags: ["E-commerce", "SEO"], url: "https://largelifedesigns.com/", image: "/assets/portfolio/Largelife Furnitures Best Furniture company in Lagos.webp" },
   { name: "SmartGold", tags: ["Web Development"], url: "https://smartgold.com", image: "/assets/portfolio/SmartGold.jpg" },
 
@@ -257,7 +261,7 @@ export const PORTFOLIO = [
   { name: "Everything Polystyrene Concepts", tags: ["WordPress", "Web Design", "SEO"], url: "https://everythingpolystyreneconcepts.com/", image: "/assets/portfolio/Everything Polystyrene Concepts.webp" },
 
   { name: "Zynoplus Interiors", tags: ["Laravel", "API Development", "Web Development"], url: "https://zynoplus.com/", image: "/assets/portfolio/zynoplus.jpg" },
-  { name: "Dadeb School", tags: ["Web Design", "WordPress"], url: "#", image: "/assets/portfolio/dadeb-school-lagos-nigeria.jpg" },
+  { name: "Dadeb School", tags: ["Web Design", "WordPress"], url: "#", image: "/assets/portfolio/dadeb-school-lagos-nigeria.jpg" }
 ];
 
 
