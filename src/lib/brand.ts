@@ -231,6 +231,7 @@ export const OTHER_SPECIALTIES = [
 export const PORTFOLIO = [
   { name: "Safedeal Marketplace", tags: ["Web Development", "SEO", "Laravel", "API Development"], url: "https://safedeal.ng", image: "/assets/portfolio/Safedeal Marketplace Nigeria.webp" },
   { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/", image: "/assets/portfolio/Digital Marketing & Growth Agency Canada - Moonstone Digital.webp" },
+  { name: "Bikers Academy", tags: ["Web Development", "Next.js", "SEO", "E-commerce"], url: "https://bikersacademy.ng", image: "/assets/portfolio/Bikers Academy Ibadan.webp" },
   { name: "Gaidi", tags: ["Web Development"], url: "https://gaidi.de/", image: "/assets/portfolio/German-African Initiative for Development and Integration – (GAIDI) UG. WordPress Web Design.webp" },
   { name: "The Castle Academy", tags: ["SEO", "TailwindCSS", "Web Development"], url: "https://thecastleacademy.com", image: "/assets/portfolio/The Castle Academy Lagos.webp" },
   { name: "Castle eWil and Trust", tags: ["API Development", "Laravel", "Next.js", "SEO", "TailwindCSS", "Web Development"], url: "https://castlewilltrust.com", image: "/assets/portfolio/Castle eWil and Trust Lagos Nigeria.webp" },
