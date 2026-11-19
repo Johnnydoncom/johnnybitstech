@@ -229,6 +229,7 @@ export const OTHER_SPECIALTIES = [
 ];
 
 export const PORTFOLIO = [
+  { name: "Safedeal Marketplace", tags: ["Web Development", "SEO", "Laravel", "API Development"], url: "https://safedeal.ng", image: "/assets/portfolio/Safedeal Marketplace Nigeria.webp" },
   { name: "Moonstone Digital", tags: ["SEO", "Web Development"], url: "https://moonstonedigital.ca/", image: "/assets/portfolio/Digital Marketing & Growth Agency Canada - Moonstone Digital.webp" },
   { name: "Gaidi", tags: ["Web Development"], url: "https://gaidi.de/", image: "/assets/portfolio/German-African Initiative for Development and Integration – (GAIDI) UG. WordPress Web Design.webp" },
   { name: "The Castle Academy", tags: ["SEO", "TailwindCSS", "Web Development"], url: "https://thecastleacademy.com", image: "/assets/portfolio/The Castle Academy Lagos.webp" },
@@ -236,6 +237,9 @@ export const PORTFOLIO = [
   { name: "Opseac NV", tags: ["WordPress", "Bricks", "SEO", "TailwindCSS", "Web Development"], url: "https://opseac.sr", image: "/assets/portfolio/Opseac NV Suriname.webp" },
   { name: "Gap Castle", tags: ["WordPress", "Bricks", "SEO", "TailwindCSS", "Web Development"], url: "https://gapcastle.com", image: "/assets/portfolio/Gap Castle.webp" },
   { name: "Largelife Furniture", tags: ["E-commerce", "SEO"], url: "https://largelifedesigns.com/", image: "/assets/portfolio/Largelife Furnitures Best Furniture company in Lagos.webp" },
+  { name: "Gap Castle Bill Payment Platform", tags: ["Web Development", "Laravel", "Next.js", "API Development"], url: "https://pay.gapcastle.com", image: "/assets/portfolio/Gap Castle Bill Payment Platform.webp" },
+  { name: "Banex Marketplace", tags: ["Web Development", "SEO", "Laravel", "Next.js", "API Development"], url: "https://marketplace.banexmall.com", image: "/assets/portfolio/Banex Mall Marketplace Lagos.webp" },
+
   { name: "SmartGold", tags: ["Web Development"], url: "https://smartgold.com", image: "/assets/portfolio/SmartGold.jpg" },
 
   { name: "Paintmaster Nigeria", tags: ["Web Development"], url: "https://paintmasters.com", image: "/assets/portfolio/Paintmaster.jpg" },
